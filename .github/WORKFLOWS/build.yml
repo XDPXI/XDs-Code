@@ -1,0 +1,22 @@
+﻿name: Build Tauri App
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: tauri-apps/tauri-action@v0
+        with:
+          args: build
+
+  build-macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: tauri-apps/tauri-action@v0
+        with:
+          args: build
