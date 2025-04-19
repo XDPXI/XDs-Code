@@ -13,8 +13,6 @@ const getFileIcon = (filename: string): string => {
         case 'js':
         case 'ts':
             return 'fa-brands fa-js';
-        case 'json':
-            return 'fa-solid fa-brackets-curly';
         case 'html':
             return 'fa-brands fa-html5';
         case 'css':
