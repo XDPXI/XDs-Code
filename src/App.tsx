@@ -1,5 +1,10 @@
-import {useEffect, useRef, useState} from 'react';
+import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import './App.css';
+
+interface FileEntry {
+    name: string;
+    handle: FileSystemFileHandle;
+}
 
 const getFileIcon = (filename: string): string => {
     const ext = filename.split('.').pop()?.toLowerCase();
@@ -37,19 +42,21 @@ const getFileIcon = (filename: string): string => {
 };
 
 export default function App() {
-    const [fileList, setFileList] = useState<string[]>([]);
+    const [fileList, setFileList] = useState<FileEntry[]>([]);
     const [hasOpened, setHasOpened] = useState<boolean>(false);
     const [currentFile, setCurrentFile] = useState<string | null>(null);
     const [fileContent, setFileContent] = useState<string>('');
     const editorRef = useRef<HTMLTextAreaElement>(null);
 
-    const handleOpenFolder = async () => {
+    const handleOpenFolder = useCallback(async () => {
         try {
             const dirHandle = await (window as any).showDirectoryPicker();
-            const files: string[] = [];
+            const files: FileEntry[] = [];
 
             for await (const entry of dirHandle.values()) {
-                if (entry.kind === 'file') files.push(entry.name);
+                if (entry.kind === 'file') {
+                    files.push({name: entry.name, handle: entry});
+                }
             }
 
             setFileList(files);
@@ -57,12 +64,12 @@ export default function App() {
         } catch (err) {
             console.error("Folder selection cancelled or unsupported", err);
         }
-    };
+    }, []);
 
-    const handleOpenFile = async () => {
+    const handleOpenFile = useCallback(async () => {
         try {
             const [fileHandle] = await (window as any).showOpenFilePicker();
-            setFileList([fileHandle.name]);
+            setFileList([{name: fileHandle.name, handle: fileHandle}]);
             setHasOpened(true);
             setCurrentFile(fileHandle.name);
 
@@ -72,18 +79,31 @@ export default function App() {
         } catch (err) {
             console.error("File selection cancelled or unsupported", err);
         }
-    };
+    }, []);
 
-    const handleFileClick = async (file: string) => {
-        setCurrentFile(file);
-        const fileHandle = await (window as any).showOpenFilePicker();
-        const selectedFile = fileHandle[0];
-        const fileObj = await selectedFile.getFile();
-        const text = await fileObj.text();
-        setFileContent(text);
-    };
+    const handleFileClick = useCallback(
+        async (file: string) => {
+            setCurrentFile(file);
+            const selectedFile = fileList.find((f) => f.name === file);
 
-    const handleSaveFile = async () => {
+            if (selectedFile) {
+                try {
+                    const fileObj = await selectedFile.handle.getFile();
+                    const text = await fileObj.text();
+                    setFileContent(text);
+                } catch (err) {
+                    console.error("Error reading file", err);
+                    setFileContent(`Error reading file: ${err}`);
+                }
+            } else {
+                console.warn("File not found in fileList:", file);
+                setFileContent(`File not found: ${file}`);
+            }
+        },
+        [fileList]
+    );
+
+    const handleSaveFile = useCallback(async () => {
         if (!currentFile) return;
 
         try {
@@ -97,26 +117,47 @@ export default function App() {
         } catch (err) {
             console.error("Saving file failed", err);
         }
-    };
+    }, [currentFile, fileContent]);
 
-    const handleKeyDown = (e: KeyboardEvent) => {
-        if (e.ctrlKey && e.key === 's') {
-            e.preventDefault();
-            handleSaveFile();
-        }
-    };
+    const handleKeyDown = useCallback(
+        (e: KeyboardEvent) => {
+            if (e.ctrlKey && e.key === 's') {
+                e.preventDefault();
+                handleSaveFile();
+            }
+        },
+        [handleSaveFile]
+    );
 
     useEffect(() => {
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [fileContent, currentFile]);
+    }, [handleKeyDown]);
+
+    const fileItems = useMemo(
+        () =>
+            fileList.map((file, index) => (
+                <div
+                    key={index}
+                    className="file-item"
+                    onClick={() => handleFileClick(file.name)}
+                >
+                    <i className={`file-icon ${getFileIcon(file.name)}`}/> {file.name}
+                </div>
+            )),
+        [fileList, handleFileClick]
+    );
 
     if (!hasOpened) {
         return (
             <div className="starter-screen">
                 <h1 className="starter-title">XD’s Code</h1>
-                <button className="starter-btn" onClick={handleOpenFolder}>📁 Open Folder</button>
-                <button className="starter-btn" onClick={handleOpenFile}>📄 Open File</button>
+                <button className="starter-btn" onClick={handleOpenFolder}>
+                    📁 Open Folder
+                </button>
+                <button className="starter-btn" onClick={handleOpenFile}>
+                    📄 Open File
+                </button>
             </div>
         );
     }
@@ -124,23 +165,23 @@ export default function App() {
     return (
         <div className="editor-container">
             <div className="sidebar">
-                <button className="open-folder-btn" onClick={handleOpenFolder}>📁 Open Folder</button>
-                <button className="open-folder-btn" onClick={handleOpenFile}>📄 Open File</button>
+                <button className="open-folder-btn" onClick={handleOpenFolder}>
+                    📁 Open Folder
+                </button>
+                <button className="open-folder-btn" onClick={handleOpenFile}>
+                    📄 Open File
+                </button>
                 {fileList.length > 0 && (
-                    <div className="file-list">
-                        {fileList.map((file, index) => (
-                            <div key={index} className="file-item" onClick={() => handleFileClick(file)}>
-                                <i className={`file-icon ${getFileIcon(file)}`}/> {file}
-                            </div>
-                        ))}
-                    </div>
+                    <div className="file-list">{fileItems}</div>
                 )}
             </div>
 
             <div className="editor">
                 <div className="line-numbers">
                     {Array.from({length: 999}, (_, i) => (
-                        <div key={i} className="line-number">{i + 1}</div>
+                        <div key={i} className="line-number">
+                            {i + 1}
+                        </div>
                     ))}
                 </div>
                 <textarea
@@ -152,7 +193,8 @@ export default function App() {
                     onChange={(e) => setFileContent(e.target.value)}
                     onScroll={(e) => {
                         const gutter = document.querySelector('.line-numbers');
-                        if (gutter) gutter.scrollTop = (e.target as HTMLElement).scrollTop;
+                        if (gutter)
+                            gutter.scrollTop = (e.target as HTMLElement).scrollTop;
                     }}
                 />
             </div>
