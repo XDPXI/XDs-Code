@@ -5,6 +5,7 @@
     height: 100%;
     background-color: #1e1e1e;
     font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    transition: background-color 0.3s ease;
 }
 
 .editor-container {
@@ -26,6 +27,8 @@
     color: #ffffff;
     display: flex;
     flex-direction: column;
+    transition: background-color 0.3s ease,
+    border-color 0.3s ease;
 }
 
 .open-folder-btn {
@@ -47,6 +50,7 @@
     font-size: 14px;
     color: #ccc;
     margin-bottom: 10px;
+    transition: color 0.3s ease;
 }
 
 .file-list {
@@ -62,7 +66,8 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    transition: background-color 0.2s;
+    transition: background-color 0.2s ease,
+    padding-left 0.2s ease;
 }
 
 .file-item:hover {
@@ -79,6 +84,7 @@
     min-width: 16px;
     text-align: center;
     color: #bbb;
+    transition: color 0.3s ease;
 }
 
 .editor {
@@ -101,12 +107,15 @@
     min-width: 40px;
     height: 100%;
     box-sizing: border-box;
+    transition: background-color 0.3s ease,
+    border-color 0.3s ease;
 }
 
 .line-number {
     height: 1.5em;
     line-height: 1.5em;
     padding-right: 8px;
+    transition: color 0.3s ease;
 }
 
 .editor-textarea {
@@ -136,12 +145,14 @@
     align-items: center;
     font-family: 'JetBrains Mono', monospace;
     color: white;
+    transition: background-color 0.3s ease;
 }
 
 .starter-title {
     font-size: 48px;
     margin-bottom: 32px;
     color: #ff6b6b;
+    transition: color 0.3s ease;
 }
 
 .starter-btn {
@@ -190,18 +201,18 @@
     display: flex;
     align-items: center;
     white-space: nowrap;
-    transition: all 0.3s;
+    transition: all 0.3s ease;
 }
 
 .tab-item.active {
-    transition: all 0.3s;
+    transition: all 0.3s ease;
     border-radius: 5px;
     background-color: #2b2b2b;
     border-bottom: 2px solid #3a3a3a;
 }
 
 .tab-item:hover {
-    transition: all 0.3s;
+    transition: all 0.3s ease;
     border-radius: 5px;
     background-color: #2b2b2b;
 }
@@ -215,6 +226,7 @@
     padding: 0;
     font-size: 12px;
     line-height: 1;
+    transition: color 0.3s ease;
 }
 
 .close-tab-btn:hover {
