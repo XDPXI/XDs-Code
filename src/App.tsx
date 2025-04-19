@@ -250,7 +250,7 @@ export default function App() {
                 <div className="tabs">{tabItems}</div>
                 <div className="editor">
                     <div className="line-numbers">
-                        {Array.from({length: 999}, (_, i) => (
+                        {Array.from({length: 9999}, (_, i) => (
                             <div key={i} className="line-number">{i + 1}</div>
                         ))}
                     </div>
