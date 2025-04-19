@@ -7,6 +7,14 @@ interface FileEntry {
     content: string;
 }
 
+interface FolderEntry {
+    name: string;
+    handle: FileSystemDirectoryHandle;
+    kind: 'directory';
+}
+
+type Entry = FileEntry | FolderEntry;
+
 const getFileIcon = (filename: string): string => {
     const ext = filename.split('.').pop()?.toLowerCase();
     switch (ext) {
@@ -41,11 +49,13 @@ const getFileIcon = (filename: string): string => {
 };
 
 export default function App() {
-    const [fileList, setFileList] = useState<FileEntry[]>([]);
+    const [fileList, setFileList] = useState<Entry[]>([]);
     const [openTabs, setOpenTabs] = useState<string[]>([]);
     const [hasOpened, setHasOpened] = useState<boolean>(false);
     const [currentFile, setCurrentFile] = useState<string | null>(null);
     const [fileContent, setFileContent] = useState<string>('');
+    const [currentDirHandle, setCurrentDirHandle] = useState<FileSystemDirectoryHandle | null>(null);
+    const [dirStack, setDirStack] = useState<FileSystemDirectoryHandle[]>([]);
     const editorRef = useRef<HTMLTextAreaElement>(null);
 
     const openTab = useCallback((filename: string) => {
@@ -67,25 +77,40 @@ export default function App() {
         }
     }, [openTabs, currentFile]);
 
+    const readDirectory = useCallback(async (dirHandle: FileSystemDirectoryHandle) => {
+        const entries: Entry[] = [];
+
+        // @ts-ignore
+        for await (const entry of dirHandle.values()) {
+            if (entry.kind === 'file') {
+                const file = await entry.getFile();
+                const content = await file.text();
+                entries.push({name: entry.name, handle: entry, content});
+            } else if (entry.kind === 'directory') {
+                entries.push({name: entry.name, handle: entry, kind: 'directory'});
+            }
+        }
+
+        entries.sort((a, b) => {
+            if ('kind' in a && a.kind === 'directory') return -1;
+            if ('kind' in b && b.kind === 'directory') return 1;
+            return a.name.localeCompare(b.name);
+        });
+
+        setFileList(entries);
+        setCurrentDirHandle(dirHandle);
+        setHasOpened(true);
+    }, []);
+
     const handleOpenFolder = useCallback(async () => {
         try {
             const dirHandle = await (window as any).showDirectoryPicker();
-            const files: FileEntry[] = [];
-
-            for await (const entry of dirHandle.values()) {
-                if (entry.kind === 'file') {
-                    const file = await entry.getFile();
-                    const content = await file.text();
-                    files.push({name: entry.name, handle: entry, content});
-                }
-            }
-
-            setFileList(files);
-            setHasOpened(true);
+            setDirStack([]);
+            readDirectory(dirHandle);
         } catch (err) {
             console.error("Folder selection cancelled or unsupported", err);
         }
-    }, []);
+    }, [readDirectory]);
 
     const handleOpenFile = useCallback(async () => {
         try {
@@ -101,28 +126,37 @@ export default function App() {
         }
     }, [openTab]);
 
-    const handleFileClick = useCallback(async (file: string) => {
-        setCurrentFile(file);
-        const selectedFile = fileList.find((f) => f.name === file);
-
-        if (selectedFile) {
-            setFileContent(selectedFile.content);
-            openTab(file);
+    const handleFileClick = useCallback(async (entry: Entry) => {
+        if ('kind' in entry && entry.kind === 'directory') {
+            setDirStack((prev) => [...prev, currentDirHandle!]);
+            readDirectory(entry.handle);
         } else {
-            console.warn("File not found in fileList:", file);
-            setFileContent(`File not found: ${file}`);
+            setCurrentFile(entry.name);
+            // @ts-ignore
+            setFileContent(entry.content);
+            openTab(entry.name);
         }
-    }, [fileList, openTab]);
+    }, [openTab, readDirectory, currentDirHandle]);
+
+    const goBackDirectory = useCallback(() => {
+        const newStack = [...dirStack];
+        const parent = newStack.pop();
+        if (parent) {
+            setDirStack(newStack);
+            readDirectory(parent);
+        }
+    }, [dirStack, readDirectory]);
 
     const handleSaveFile = useCallback(async () => {
         if (!currentFile) return;
 
         try {
-            const fileEntry = fileList.find((f) => f.name === currentFile);
-            if (!fileEntry) {
-                console.error("File not found in fileList:", currentFile);
+            const fileEntry = fileList.find((f) => 'handle' in f && f.name === currentFile);
+            if (!fileEntry || 'kind' in fileEntry) {
+                console.error("File not found or is a folder:", currentFile);
                 return;
             }
+
             const writable = await fileEntry.handle.createWritable();
             await writable.write(fileContent);
             await writable.close();
@@ -146,26 +180,44 @@ export default function App() {
 
     useEffect(() => {
         if (currentFile) {
-            const selectedFile = fileList.find((f) => f.name === currentFile);
+            const selectedFile = fileList.find((f) => f.name === currentFile && !('kind' in f));
             if (selectedFile) {
-                setFileContent(selectedFile.content);
+                setFileContent((selectedFile as FileEntry).content);
             }
         }
     }, [currentFile, fileList]);
 
-    const fileItems = useMemo(() => fileList.map((file, index) => (
-        <div key={index} className="file-item" onClick={() => handleFileClick(file.name)}>
-            <i className={`file-icon ${getFileIcon(file.name)}`}/> {file.name}
-        </div>
-    )), [fileList, handleFileClick]);
+    const fileItems = useMemo(() => {
+        const items = [];
+
+        if (dirStack.length > 0) {
+            items.push(
+                <div key="up" className="file-item" onClick={goBackDirectory}>
+                    <i className="fa-solid fa-arrow-up" /> ..
+                </div>
+            );
+        }
+
+        for (const entry of fileList) {
+            const isFolder = 'kind' in entry && entry.kind === 'directory';
+            const icon = isFolder ? 'fa-solid fa-folder' : getFileIcon(entry.name);
+            items.push(
+                <div key={entry.name} className="file-item" onClick={() => handleFileClick(entry)}>
+                    <i className={`file-icon ${icon}`} /> {entry.name}
+                </div>
+            );
+        }
+
+        return items;
+    }, [fileList, handleFileClick, goBackDirectory, dirStack]);
 
     const tabItems = useMemo(() => openTabs.map((filename) => (
         <div key={filename} className={`tab-item ${currentFile === filename ? 'active' : ''}`}
              onClick={() => {
                  setCurrentFile(filename);
-                 const selectedFile = fileList.find((file) => file.name === filename);
+                 const selectedFile = fileList.find((file) => file.name === filename && !('kind' in file));
                  if (selectedFile) {
-                     setFileContent(selectedFile.content);
+                     setFileContent((selectedFile as FileEntry).content);
                  }
              }}>
             {filename}
