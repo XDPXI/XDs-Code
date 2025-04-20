@@ -57,6 +57,14 @@ export default function App() {
     const [currentDirHandle, setCurrentDirHandle] = useState<FileSystemDirectoryHandle | null>(null);
     const [dirStack, setDirStack] = useState<FileSystemDirectoryHandle[]>([]);
     const editorRef = useRef<HTMLTextAreaElement>(null);
+    const [mediaURL, setMediaURL] = useState<string | null>(null);
+
+    const isImageFile = (filename: string) => {
+        return /\.(png|jpe?g|gif|webp|svg)$/i.test(filename);
+    };
+    const isVideoFile = (filename: string) => {
+        return /\.(mp4|webm|ogg|mov)$/i.test(filename);
+    };
 
     const openTab = useCallback((filename: string) => {
         if (!openTabs.includes(filename)) {
@@ -132,9 +140,20 @@ export default function App() {
             readDirectory(entry.handle);
         } else {
             setCurrentFile(entry.name);
-            // @ts-ignore
-            setFileContent(entry.content);
             openTab(entry.name);
+
+            // @ts-ignore
+            const file = await entry.handle.getFile();
+
+            if (isImageFile(entry.name) || isVideoFile(entry.name)) {
+                const url = URL.createObjectURL(file);
+                setMediaURL(url);
+                setFileContent('');
+            } else {
+                // @ts-ignore
+                setFileContent(entry.content);
+                setMediaURL(null);
+            }
         }
     }, [openTab, readDirectory, currentDirHandle]);
 
@@ -213,11 +232,22 @@ export default function App() {
 
     const tabItems = useMemo(() => openTabs.map((filename) => (
         <div key={filename} className={`tab-item ${currentFile === filename ? 'active' : ''}`}
-             onClick={() => {
+             onClick={async () => {
                  setCurrentFile(filename);
                  const selectedFile = fileList.find((file) => file.name === filename && !('kind' in file));
                  if (selectedFile) {
-                     setFileContent((selectedFile as FileEntry).content);
+                     // @ts-ignore
+                     const file = await selectedFile.handle.getFile();
+
+                     if (isImageFile(filename) || isVideoFile(filename)) {
+                         const url = URL.createObjectURL(file);
+                         setMediaURL(url);
+                         setFileContent('');
+                     } else {
+                         const content = await file.text();
+                         setFileContent(content);
+                         setMediaURL(null);
+                     }
                  }
              }}>
             {filename}
@@ -250,24 +280,44 @@ export default function App() {
             <div className="main-editor">
                 <div className="tabs">{tabItems}</div>
                 <div className="editor">
-                    <div className="line-numbers">
-                        {Array.from({length: 9999}, (_, i) => (
-                            <div key={i} className="line-number">{i + 1}</div>
-                        ))}
-                    </div>
-                    <textarea
-                        ref={editorRef}
-                        className="editor-textarea"
-                        spellCheck={false}
-                        autoFocus
-                        value={fileContent}
-                        onChange={(e) => setFileContent(e.target.value)}
-                        onScroll={(e) => {
-                            const gutter = document.querySelector('.line-numbers');
-                            if (gutter)
-                                gutter.scrollTop = (e.target as HTMLElement).scrollTop;
-                        }}
-                    />
+                    {!mediaURL && (
+                        <div className="line-numbers">
+                            {Array.from({length: 9999}, (_, i) => (
+                                <div key={i} className="line-number">{i + 1}</div>
+                            ))}
+                        </div>
+                    )}
+
+                    {mediaURL && isImageFile(currentFile || '') && (
+                        <div className="media-preview">
+                            <img src={mediaURL} alt={currentFile || ''} style={{ maxWidth: '100%', maxHeight: '100%' }} />
+                        </div>
+                    )}
+
+                    {mediaURL && isVideoFile(currentFile || '') && (
+                        <div className="media-preview">
+                            <video controls style={{ maxWidth: '100%', maxHeight: '100%' }}>
+                                <source src={mediaURL} />
+                                Your browser does not support the video tag.
+                            </video>
+                        </div>
+                    )}
+
+                    {!mediaURL && (
+                        <textarea
+                            ref={editorRef}
+                            className="editor-textarea"
+                            spellCheck={false}
+                            autoFocus
+                            value={fileContent}
+                            onChange={(e) => setFileContent(e.target.value)}
+                            onScroll={(e) => {
+                                const gutter = document.querySelector('.line-numbers');
+                                if (gutter)
+                                    gutter.scrollTop = (e.target as HTMLElement).scrollTop;
+                            }}
+                        />
+                    )}
                 </div>
             </div>
         </div>
