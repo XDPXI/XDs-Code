@@ -31,6 +31,8 @@ const getFileIcon = (filename: string): string => {
         case 'jpg':
         case 'jpeg':
         case 'gif':
+        case 'ico':
+        case 'icns':
         case 'webp':
         case 'svg':
             return 'fa-regular fa-image';
@@ -60,7 +62,7 @@ export default function App() {
     const [mediaURL, setMediaURL] = useState<string | null>(null);
 
     const isImageFile = (filename: string) => {
-        return /\.(png|jpe?g|gif|webp|svg)$/i.test(filename);
+        return /\.(png|ico|icns|jpe?g|gif|webp|svg)$/i.test(filename);
     };
     const isVideoFile = (filename: string) => {
         return /\.(mp4|webm|ogg|mov)$/i.test(filename);
