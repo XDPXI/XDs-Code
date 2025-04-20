@@ -25,18 +25,10 @@
     "active": true,
     "targets": "all",
     "icon": [
-      "icons/icon.icns",
       "icons/icon.ico",
       "icons/icon.png"
     ],
     "resources": [],
-    "macOS": {
-      "entitlements": null,
-      "exceptionDomain": "",
-      "frameworks": [],
-      "minimumSystemVersion": "10.13",
-      "signingIdentity": null
-    },
     "windows": {
       "certificateThumbprint": null,
       "digestAlgorithm": "sha256",
