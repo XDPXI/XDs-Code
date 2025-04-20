@@ -193,7 +193,7 @@ export default function App() {
         if (dirStack.length > 0) {
             items.push(
                 <div key="up" className="file-item" onClick={goBackDirectory}>
-                    <i className="fa-solid fa-arrow-up" /> ..
+                    <i className="fa-solid fa-arrow-up"/> ..
                 </div>
             );
         }
@@ -203,7 +203,7 @@ export default function App() {
             const icon = isFolder ? 'fa-solid fa-folder' : getFileIcon(entry.name);
             items.push(
                 <div key={entry.name} className="file-item" onClick={() => handleFileClick(entry)}>
-                    <i className={`file-icon ${icon}`} /> {entry.name}
+                    <i className={`file-icon ${icon}`}/> {entry.name}
                 </div>
             );
         }
@@ -224,7 +224,8 @@ export default function App() {
             <button className="close-tab-btn" onClick={(e) => {
                 e.stopPropagation();
                 closeTab(filename);
-            }}>X</button>
+            }}>X
+            </button>
         </div>
     )), [openTabs, currentFile, closeTab, fileList]);
 
