@@ -60,6 +60,7 @@ export default function App() {
     const [dirStack, setDirStack] = useState<FileSystemDirectoryHandle[]>([]);
     const editorRef = useRef<HTMLTextAreaElement>(null);
     const [mediaURL, setMediaURL] = useState<string | null>(null);
+    const [showSettings, setShowSettings] = useState<boolean>(false);
 
     const isImageFile = (filename: string) => {
         return /\.(png|ico|icns|jpe?g|gif|webp|svg)$/i.test(filename);
@@ -67,6 +68,14 @@ export default function App() {
     const isVideoFile = (filename: string) => {
         return /\.(mp4|webm|ogg|mov)$/i.test(filename);
     };
+
+    const handleOpenSettings = useCallback(() => {
+        setShowSettings(true);
+    }, []);
+
+    const handleCloseSettings = useCallback(() => {
+        setShowSettings(false);
+    }, []);
 
     const openTab = useCallback((filename: string) => {
         if (!openTabs.includes(filename)) {
@@ -116,30 +125,16 @@ export default function App() {
         try {
             const dirHandle = await (window as any).showDirectoryPicker();
             setDirStack([]);
-            readDirectory(dirHandle);
+            await readDirectory(dirHandle);
         } catch (err) {
             console.error("Folder selection cancelled or unsupported", err);
         }
     }, [readDirectory]);
 
-    const handleOpenFile = useCallback(async () => {
-        try {
-            const [fileHandle] = await (window as any).showOpenFilePicker();
-            const file = await fileHandle.getFile();
-            const content = await file.text();
-            const newFile = {name: fileHandle.name, handle: fileHandle, content};
-            setFileList([newFile]);
-            setHasOpened(true);
-            openTab(fileHandle.name);
-        } catch (err) {
-            console.error("File selection cancelled or unsupported", err);
-        }
-    }, [openTab]);
-
     const handleFileClick = useCallback(async (entry: Entry) => {
         if ('kind' in entry && entry.kind === 'directory') {
             setDirStack((prev) => [...prev, currentDirHandle!]);
-            readDirectory(entry.handle);
+            await readDirectory(entry.handle);
         } else {
             setCurrentFile(entry.name);
             openTab(entry.name);
@@ -261,12 +256,27 @@ export default function App() {
         </div>
     )), [openTabs, currentFile, closeTab, fileList]);
 
+    if (showSettings) {
+        return (
+            <div className="starter-screen">
+                <h2 className="starter-title">Settings</h2>
+                <div className="settings-info">
+                    <p><strong>Name:</strong> XD's Code</p>
+                    <p><strong>Version:</strong> 0.3.0</p>
+                </div>
+                <div className="settings-actions">
+                    <button className="starter-btn" onClick={handleCloseSettings}>Close Settings</button>
+                </div>
+            </div>
+        );
+    }
+
     if (!hasOpened) {
         return (
             <div className="starter-screen">
-                <h1 className="starter-title">XD’s Code</h1>
+                <h1 className="starter-title">XD's Code</h1>
                 <button className="starter-btn" onClick={handleOpenFolder}>📁 Open Folder</button>
-                <button className="starter-btn" onClick={handleOpenFile}>📄 Open File</button>
+                <button className="starter-btn" onClick={handleOpenSettings}>⚙️ Settings</button>
             </div>
         );
     }
@@ -275,7 +285,7 @@ export default function App() {
         <div className="editor-container">
             <div className="sidebar">
                 <button className="open-folder-btn" onClick={handleOpenFolder}>📁 Open Folder</button>
-                <button className="open-folder-btn" onClick={handleOpenFile}>📄 Open File</button>
+                <button className="open-folder-btn" onClick={handleOpenSettings}>⚙️ Settings</button>
                 <div className="file-list">{fileItems}</div>
             </div>
 
