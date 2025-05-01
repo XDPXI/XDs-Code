@@ -121,10 +121,9 @@
 
 .editor-textarea {
     border-top: 1px solid #3a3a3a;
-    border-right: 0px hidden #ffffff;
-    border-left: 0px hidden #ffffff;
-    border-bottom: 0px hidden #ffffff;
-    border-color 0.3s ease;
+    border-right: 0 hidden #ffffff;
+    border-left: 0 hidden #ffffff;
+    border-bottom: 0 hidden #ffffff;
     flex-grow: 1;
     height: 100%;
     outline: none;
