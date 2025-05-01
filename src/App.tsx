@@ -302,14 +302,14 @@ export default function App() {
 
                     {mediaURL && isImageFile(currentFile || '') && (
                         <div className="media-preview">
-                            <img src={mediaURL} alt={currentFile || ''} style={{ maxWidth: '100%', maxHeight: '100%' }} />
+                            <img src={mediaURL} alt={currentFile || ''} style={{maxWidth: '100%', maxHeight: '100%'}}/>
                         </div>
                     )}
 
                     {mediaURL && isVideoFile(currentFile || '') && (
                         <div className="media-preview">
-                            <video controls style={{ maxWidth: '100%', maxHeight: '100%' }}>
-                                <source src={mediaURL} />
+                            <video controls style={{maxWidth: '100%', maxHeight: '100%'}}>
+                                <source src={mediaURL}/>
                                 Your browser does not support the video tag.
                             </video>
                         </div>
