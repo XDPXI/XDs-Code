@@ -24,7 +24,7 @@ namespace Installer
         private const string AppDisplayName = "XD's Code";
         private const string AppVersion = "0.3.0";
         private const string ShortcutName = AppDisplayName + ".lnk";
-        private const string DownloadUrl = "";
+        private const string DownloadUrl = "https://raw.githubusercontent.com/XDPXI/XDs-Code/main/installer/latestBuild.zip";
 
         // Paths
         private readonly string _localAppData =
@@ -110,6 +110,7 @@ namespace Installer
                 UninstallButton.Visibility = Visibility.Collapsed;
                 NextButton.Visibility = Visibility.Collapsed;
                 NextButtonDisabled.Visibility = Visibility.Visible;
+                CancelButton2.Visibility = Visibility.Collapsed;
 
                 ProgressBar.IsIndeterminate = true;
                 SetStatus("Downloading & Extracting files...");
@@ -148,44 +149,56 @@ namespace Installer
         {
             try
             {
-                _isDownloading = true;
-                InstallButton.Visibility = Visibility.Collapsed;
-                UninstallButton.Visibility = Visibility.Collapsed;
-                NextButton.Visibility = Visibility.Collapsed;
-                NextButtonDisabled.Visibility = Visibility.Visible;
+                var result = MessageBox.Show("Do you want to Uninstall?", "Installer", MessageBoxButton.YesNo,
+                    MessageBoxImage.Warning);
+                if (result == MessageBoxResult.Yes)
+                {
+                    try
+                    {
+                        _isDownloading = true;
+                        InstallButton.Visibility = Visibility.Collapsed;
+                        UninstallButton.Visibility = Visibility.Collapsed;
+                        NextButton.Visibility = Visibility.Collapsed;
+                        NextButtonDisabled.Visibility = Visibility.Visible;
+                        CancelButton2.Visibility = Visibility.Collapsed;
 
-                ProgressBar.IsIndeterminate = true;
-                SetStatus("Removing files...");
-                foreach (var file in Directory.GetFiles(_extractPath))
-                    await TryDelete(() => Task.Run(() => File.Delete(file)));
+                        ProgressBar.IsIndeterminate = true;
+                        SetStatus("Removing files...");
+                        foreach (var file in Directory.GetFiles(_extractPath))
+                            await TryDelete(() => Task.Run(() => File.Delete(file)));
 
-                SetStatus("Removing folders...");
-                foreach (var dir in Directory.GetDirectories(_extractPath))
-                    await TryDelete(() => Task.Run(() => Directory.Delete(dir, true)));
+                        SetStatus("Removing folders...");
+                        foreach (var dir in Directory.GetDirectories(_extractPath))
+                            await TryDelete(() => Task.Run(() => Directory.Delete(dir, true)));
 
-                SetStatus("Removing shortcuts...");
-                await TryDelete(() => Task.Run(() => File.Delete(Path.Combine(_desktop, ShortcutName))));
-                await TryDelete(() => Task.Run(() => File.Delete(Path.Combine(_desktop, ShortcutName))));
+                        SetStatus("Removing shortcuts...");
+                        await TryDelete(() => Task.Run(() => File.Delete(Path.Combine(_desktop, ShortcutName))));
+                        await TryDelete(() => Task.Run(() => File.Delete(Path.Combine(_localAppData, ShortcutName))));
 
-                SetStatus("Cleaning up...");
+                        SetStatus("Uninstallation completed!");
+                        ProgressBar.IsIndeterminate = false;
 
-                SetStatus("Uninstallation completed!");
-                ProgressBar.IsIndeterminate = false;
+                        _isDownloading = false;
+                        _hasInstalled = true;
+                        _didUninstall = true;
 
-                _isDownloading = false;
-                _didUninstall = true;
+                        CancelButton.Visibility = Visibility.Collapsed;
+                        NextButtonDisabled.Visibility = Visibility.Collapsed;
+                        DoneButton.Visibility = Visibility.Visible;
 
-                CancelButton.Visibility = Visibility.Collapsed;
-                NextButtonDisabled.Visibility = Visibility.Collapsed;
-                DoneButton.Visibility = Visibility.Visible;
-
-                SmoothProgressBarUpdate(100);
+                        SmoothProgressBarUpdate(100);
+                    }
+                    catch (Exception ex)
+                    {
+                        MessageBox.Show($"Installation failed:\n{ex.Message}", "Installer", MessageBoxButton.OK,
+                            MessageBoxImage.Error);
+                        Log($"Install error: {ex}");
+                    }
+                }
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Installation failed:\n{ex.Message}", "Installer", MessageBoxButton.OK,
-                    MessageBoxImage.Error);
-                Log($"Install error: {ex}");
+                Log($"Uninstall error: {ex}");
             }
         }
 

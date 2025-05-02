@@ -111,7 +111,6 @@ out/
 *.pdb
 
 # Archives
-*.zip
 *.tar.gz
 *.tar.bz2
 *.7z
