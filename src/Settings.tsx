@@ -1,27 +1,11 @@
-﻿import { useCallback, useState, useEffect } from "react";
-import { getVersion } from '@tauri-apps/api/app';
+﻿import {useCallback} from "react";
 
 interface SettingsProps {
   setShowSettings: (show: boolean) => void;
+  version: string;
 }
 
-export default function Settings({ setShowSettings }: SettingsProps) {
-    const [version, setVersion] = useState("N/A");
-    
-    useEffect(() => {
-        const fetchVersion = async () => {
-            try {
-                const appVersion = await getVersion();
-                setVersion(appVersion);
-            } catch (error) {
-                console.error("Failed to get app version:", error);
-                setVersion("N/A");
-            }
-        };
-        
-        fetchVersion();
-    }, []);
-
+export default function Settings({setShowSettings, version}: SettingsProps) {
     const handleCloseSettings = useCallback(() => {
         setShowSettings(false);
     }, [setShowSettings]);

@@ -1,6 +1,7 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import './App.css';
 import Settings from "./Settings.tsx";
+import {getVersion} from "@tauri-apps/api/app";
 
 interface FileEntry {
     name: string;
@@ -62,6 +63,21 @@ export default function App() {
     const editorRef = useRef<HTMLTextAreaElement>(null);
     const [mediaURL, setMediaURL] = useState<string | null>(null);
     const [showSettings, setShowSettings] = useState<boolean>(false);
+    const [version, setVersion] = useState("0.0.0");
+
+    useEffect(() => {
+        const fetchVersion = async () => {
+            try {
+                const appVersion = await getVersion();
+                setVersion(appVersion);
+            } catch (error) {
+                console.error("Failed to get app version:", error);
+                setVersion("N/A");
+            }
+        };
+
+        fetchVersion();
+    }, []);
 
     const isImageFile = (filename: string) => {
         return /\.(png|ico|icns|jpe?g|gif|webp|svg)$/i.test(filename);
@@ -254,7 +270,7 @@ export default function App() {
     )), [openTabs, currentFile, closeTab, fileList]);
 
     if (showSettings) {
-        return <Settings setShowSettings={setShowSettings} />;
+        return <Settings setShowSettings={setShowSettings} version={version}/>;
     }
 
     if (!hasOpened) {
