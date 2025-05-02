@@ -2,6 +2,7 @@ import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import './App.css';
 import Settings from "./Settings.tsx";
 import {getVersion} from "@tauri-apps/api/app";
+import Starter from "./Starter.tsx";
 
 interface FileEntry {
     name: string;
@@ -271,16 +272,8 @@ export default function App() {
 
     if (showSettings) {
         return <Settings setShowSettings={setShowSettings} version={version}/>;
-    }
-
-    if (!hasOpened) {
-        return (
-            <div className="starter-screen">
-                <h1 className="starter-title">XD's Code</h1>
-                <button className="starter-btn" onClick={handleOpenFolder}>📁 Open Folder</button>
-                <button className="starter-btn" onClick={handleOpenSettings}>⚙️ Settings</button>
-            </div>
-        );
+    } else if (!hasOpened) {
+        return <Starter handleOpenFolder={handleOpenFolder} handleOpenSettings={handleOpenSettings}/>;
     }
 
     return (

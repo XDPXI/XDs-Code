@@ -4,8 +4,8 @@
   "version": "0.3.0",
   "type": "module",
   "scripts": {
-    "test": "tauri dev",
-    "build-release": "tauri build",
+    "start": "tauri dev",
+    "build": "tauri build",
     "build-dev": "tauri build --debug"
   },
   "dependencies": {
