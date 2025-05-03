@@ -25,11 +25,10 @@ namespace Installer
         private const string DownloadUrl = "https://raw.githubusercontent.com/XDPXI/XDs-Code/main/installer/releases/0.3.2.zip";
 
         // Paths
-        private readonly string _localAppData =
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-        private readonly string _programs = Environment.GetFolderPath(Environment.SpecialFolder.Programs);
+        private readonly string _localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
         private readonly string _desktop = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
         private readonly string _extractPath;
+        private readonly string _programs = Environment.GetFolderPath(Environment.SpecialFolder.Programs);
 
         // State
         private bool _isDownloading;
@@ -115,7 +114,6 @@ namespace Installer
                 var result = MessageBox.Show("Do you want to Uninstall?", "Installer", MessageBoxButton.YesNo,
                     MessageBoxImage.Warning);
                 if (result == MessageBoxResult.Yes)
-                {
                     try
                     {
                         _isDownloading = true;
@@ -157,7 +155,6 @@ namespace Installer
                             MessageBoxImage.Error);
                         Log($"Install error: {ex}");
                     }
-                }
             }
             catch (Exception ex)
             {
@@ -367,9 +364,9 @@ namespace Installer
                 var logPath = Path.Combine(_extractPath, "log.txt");
                 File.AppendAllText(logPath, string.Format("[{0}] {1}{2}", DateTime.Now, message, Environment.NewLine));
             }
-            catch
+            catch (Exception)
             {
-                // Ignore
+                /* */
             }
         }
     }
