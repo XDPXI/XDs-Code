@@ -4,8 +4,6 @@ using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
 using System.Net.Http;
-using System.Reflection;
-using System.Security.Principal;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
@@ -35,49 +33,14 @@ namespace Installer
 
         // State
         private bool _isDownloading;
-        private bool _startingAdmin;
         private bool _didUninstall;
         private bool _hasInstalled;
 
         public MainWindow()
         {
-            if (!IsRunningAsAdministrator())
-            {
-                RestartAsAdmin();
-                Close();
-                return;
-            }
-
             InitializeComponent();
             TitleText.Text = $"{AppDisplayName} Setup";
             _extractPath = Path.Combine(_localAppData, AppDisplayName);
-        }
-
-        private bool IsRunningAsAdministrator()
-        {
-            var identity = WindowsIdentity.GetCurrent();
-            var principal = new WindowsPrincipal(identity);
-            return principal.IsInRole(WindowsBuiltInRole.Administrator);
-        }
-
-        private void RestartAsAdmin()
-        {
-            try
-            {
-                _startingAdmin = true;
-                var info = new ProcessStartInfo
-                {
-                    FileName = Assembly.GetExecutingAssembly().Location,
-                    UseShellExecute = true,
-                    Verb = "runas"
-                };
-                Process.Start(info);
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Failed to restart as admin.\n{ex.Message}", "Installer", MessageBoxButton.OK,
-                    MessageBoxImage.Error);
-            }
         }
 
         private static void CreateShortcut(string location, string targetPath, string shortcutName,
@@ -383,7 +346,7 @@ namespace Installer
 
         protected override void OnClosing(CancelEventArgs e)
         {
-            if (!_hasInstalled && !_startingAdmin)
+            if (!_hasInstalled)
             {
                 var result = MessageBox.Show("Cancel installation?", "Installer", MessageBoxButton.YesNo,
                     MessageBoxImage.Warning);
