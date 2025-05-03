@@ -173,7 +173,7 @@ namespace Installer
 
                         SetStatus("Removing shortcuts...");
                         await TryDelete(() => Task.Run(() => File.Delete(Path.Combine(_desktop, ShortcutName))));
-                        await TryDelete(() => Task.Run(() => File.Delete(Path.Combine(_localAppData, ShortcutName))));
+                        await TryDelete(() => Task.Run(() => File.Delete(Path.Combine(_programs, ShortcutName))));
 
                         SetStatus("Uninstallation completed!");
                         ProgressBar.IsIndeterminate = false;
