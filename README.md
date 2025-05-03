@@ -19,22 +19,22 @@
 
 ## Building from Source
 
-1.  Clone the repository:
+1. Clone the repository:
 
-    ```bash
-    git clone https://github.com/XDPXI/XDs-Code.git
-    ```
+   ```bash
+   git clone https://github.com/XDPXI/XDs-Code.git
+   ```
 
-2.  Navigate to the project directory:
+2. Navigate to the project directory:
 
-    ```bash
-    cd XDs-Code
-    ```
+   ```bash
+   cd XDs-Code
+   ```
 
-3.  Install dependencies:
+3. Install dependencies:
 
-    ```bash
-    pnpm install
-    ```
+   ```bash
+   pnpm install
+   ```
 
 ---

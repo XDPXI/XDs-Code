@@ -1,8 +1,8 @@
 ﻿import {useCallback} from "react";
 
 interface SettingsProps {
-  setShowSettings: (show: boolean) => void;
-  version: string;
+    setShowSettings: (show: boolean) => void;
+    version: string;
 }
 
 export default function Settings({setShowSettings, version}: SettingsProps) {
