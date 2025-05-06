@@ -137,11 +137,66 @@ export default function App() {
 
     const handleOpenFolder = useCallback(async () => {
         try {
-            const dirHandle = await (window as any).showDirectoryPicker();
-            setDirStack([]);
-            await readDirectory(dirHandle);
+            if ('showDirectoryPicker' in window) {
+                const dirHandle = await (window as any).showDirectoryPicker();
+                setDirStack([]);
+                await readDirectory(dirHandle);
+            }
+            else {
+                const input = document.createElement('input');
+                input.type = 'file';
+                input.webkitdirectory = true;
+                (input as any).directory = true;
+                input.multiple = true;
+
+                input.onchange = async (e) => {
+                    const files = Array.from((e.target as HTMLInputElement).files || []);
+                    if (files.length === 0) return;
+
+                    const entries: Entry[] = [];
+                    const dirName = files[0].webkitRelativePath.split('/')[0];
+
+                    for (const file of files) {
+                        if (file.name === dirName) continue;
+
+                        const content = await file.text();
+                        const virtualHandle = {
+                            getFile: async () => file,
+                            createWritable: async () => {
+                                throw new Error("Write operations not supported in compatibility mode");
+                            }
+                        } as unknown as FileSystemFileHandle;
+
+                        entries.push({
+                            name: file.name,
+                            handle: virtualHandle,
+                            content
+                        });
+                    }
+
+                    entries.sort((a, b) => {
+                        if ('kind' in a && a.kind === 'directory') return -1;
+                        if ('kind' in b && b.kind === 'directory') return 1;
+                        return a.name.localeCompare(b.name);
+                    });
+
+                    setFileList(entries);
+                    setDirStack([]);
+                    setHasOpened(true);
+
+                    const virtualDirHandle = {
+                        name: dirName,
+                        kind: 'directory'
+                    } as unknown as FileSystemDirectoryHandle;
+
+                    setCurrentDirHandle(virtualDirHandle);
+                };
+
+                input.click();
+            }
         } catch (err) {
             console.error("Folder selection cancelled or unsupported", err);
+            alert("Your browser may not fully support folder selection. For the best experience, please use Chrome or Edge.");
         }
     }, [readDirectory]);
 
@@ -289,7 +344,7 @@ export default function App() {
                 <div className="editor">
                     {!mediaURL && (
                         <div className="line-numbers">
-                            {Array.from({length: 9999}, (_, i) => (
+                            {Array.from({length: 99999}, (_, i) => (
                                 <div key={i} className="line-number">{i + 1}</div>
                             ))}
                         </div>
