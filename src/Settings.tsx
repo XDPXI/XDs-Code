@@ -11,7 +11,7 @@ export default function Settings({setShowSettings, version}: SettingsProps) {
     }, [setShowSettings]);
 
     const downloadInstaller = () => {
-        window.location.href = "https://github.com/XDPXI/XDs-Code/releases/download/0.3.2/xds-code_installer_0.3.2_windows.exe";
+        window.location.href = `https://github.com/XDPXI/XDs-Code/releases/download/${version}/xds-code_installer_${version}_windows.exe`;
     };
 
     return (
