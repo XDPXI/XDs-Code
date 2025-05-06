@@ -1,12 +1,12 @@
 {
   "name": "xds-code",
   "private": true,
-  "version": "0.3.3",
+  "version": "0.4.0",
   "type": "module",
   "scripts": {
-    "start": "tauri dev",
-    "build": "tauri build",
-    "build-dev": "tauri build --debug"
+    "dev": "pnpm tauri dev",
+    "build": "pnpm tauri build",
+    "build-dev": "pnpm tauri build --debug"
   },
   "dependencies": {
     "@tauri-apps/api": "^2.5.0",
