@@ -4,6 +4,9 @@ on:
   push:
     branches: [ application ]
 
+permissions:
+  contents: read
+
 jobs:
   build-windows:
     runs-on: windows-latest
