@@ -43,5 +43,8 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
-      - name: Build Tauri app (macOS)
-        run: pnpm tauri build
+      - name: Build Tauri app (macOS) (intel)
+        run: pnpm tauri build -- --target x86_64-apple-darwin
+
+      - name: Build Tauri app (macOS) (aarch64)
+        run: pnpm tauri build -- --target aarch64-apple-darwin
