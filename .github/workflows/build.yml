@@ -1,4 +1,4 @@
-﻿name: Build Tauri App
+﻿﻿name: Build Tauri App
 
 on:
   push:
@@ -8,23 +8,8 @@ permissions:
   contents: read
 
 jobs:
-  build:
-    strategy:
-      matrix:
-        include:
-          - os: windows-latest
-            name: Build Tauri app (Windows)
-            target: ""
-          - os: macos-latest
-            name: Build Tauri app (macOS Intel)
-            target: "--target x86_64-apple-darwin"
-          - os: macos-latest
-            name: Build Tauri app (macOS ARM64)
-            target: "--target aarch64-apple-darwin"
-
-    runs-on: ${{ matrix.os }}
-    name: ${{ matrix.name }}
-
+  build-windows:
+    runs-on: windows-latest
     steps:
       - uses: actions/checkout@v3
 
@@ -32,19 +17,31 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: pnpm
 
       - name: Install pnpm
         run: npm install -g pnpm
 
-      - name: Install Rust (stable)
-        uses: actions-rs/toolchain@v1
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Build Tauri app (Windows)
+        run: pnpm tauri build
+
+  build-macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
         with:
-          toolchain: stable
-          override: true
+          node-version: 22
+
+      - name: Install pnpm
+        run: npm install -g pnpm
 
       - name: Install dependencies
         run: pnpm install
 
-      - name: Build Tauri App
-        run: pnpm tauri build ${{ matrix.target }}
+      - name: Build Tauri app (macOS)
+        run: pnpm tauri build
