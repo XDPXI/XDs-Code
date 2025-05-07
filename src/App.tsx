@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import './App.css';
 import Settings from "./Settings.tsx";
 import {getVersion} from "@tauri-apps/api/app";
@@ -64,7 +64,9 @@ export default function App() {
     const editorRef = useRef<HTMLTextAreaElement>(null);
     const [mediaURL, setMediaURL] = useState<string | null>(null);
     const [showSettings, setShowSettings] = useState<boolean>(false);
-    const [version, setVersion] = useState("0.0.0");
+    const [version, setVersion] = useState("0.0.0")
+    const contentRef = useRef<string>('');
+    const isDirtyRef = useRef<boolean>(false);
 
     useEffect(() => {
         const fetchVersion = async () => {
@@ -102,10 +104,12 @@ export default function App() {
         setOpenTabs(openTabs.filter((file) => file !== filename));
         if (currentFile === filename) {
             if (openTabs.length > 1) {
-                setCurrentFile(openTabs[0]);
+                const newCurrentFile = openTabs.find(tab => tab !== filename) || null;
+                setCurrentFile(newCurrentFile);
             } else {
                 setCurrentFile(null);
                 setFileContent('');
+                contentRef.current = '';
             }
         }
     }, [openTabs, currentFile]);
@@ -201,6 +205,14 @@ export default function App() {
     }, [readDirectory]);
 
     const handleFileClick = useCallback(async (entry: Entry) => {
+        if (isDirtyRef.current && currentFile) {
+            const confirmSave = window.confirm("You have unsaved changes. Do you want to save them before opening another file?");
+            if (confirmSave) {
+                await handleSaveFile();
+            }
+            isDirtyRef.current = false;
+        }
+
         if ('kind' in entry && entry.kind === 'directory') {
             setDirStack((prev) => [...prev, currentDirHandle!]);
             await readDirectory(entry.handle);
@@ -215,13 +227,16 @@ export default function App() {
                 const url = URL.createObjectURL(file);
                 setMediaURL(url);
                 setFileContent('');
+                contentRef.current = '';
             } else {
                 // @ts-ignore
-                setFileContent(entry.content);
+                const content = entry.content;
+                contentRef.current = content;
+                setFileContent(content);
                 setMediaURL(null);
             }
         }
-    }, [openTab, readDirectory, currentDirHandle]);
+    }, [openTab, readDirectory, currentDirHandle, currentFile]);
 
     const goBackDirectory = useCallback(() => {
         const newStack = [...dirStack];
@@ -242,14 +257,26 @@ export default function App() {
                 return;
             }
 
+            const contentToSave = contentRef.current;
+
             const writable = await fileEntry.handle.createWritable();
-            await writable.write(fileContent);
+            await writable.write(contentToSave);
             await writable.close();
+
+            setFileList(prev =>
+                prev.map(entry =>
+                    'handle' in entry && entry.name === currentFile
+                        ? { ...entry, content: contentToSave }
+                        : entry
+                )
+            );
+
+            isDirtyRef.current = false;
             console.log('File saved successfully');
         } catch (err) {
             console.error("Saving file failed", err);
         }
-    }, [currentFile, fileContent, fileList]);
+    }, [currentFile, fileList]);
 
     const handleKeyDown = useCallback((e: KeyboardEvent) => {
         if (e.ctrlKey && e.key === 's') {
@@ -267,10 +294,23 @@ export default function App() {
         if (currentFile) {
             const selectedFile = fileList.find((f) => f.name === currentFile && !('kind' in f));
             if (selectedFile) {
-                setFileContent((selectedFile as FileEntry).content);
+                const content = (selectedFile as FileEntry).content;
+                contentRef.current = content;
+                setFileContent(content);
+                isDirtyRef.current = false;
             }
         }
     }, [currentFile, fileList]);
+
+    const handleEditorChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
+        const newContent = e.target.value;
+        contentRef.current = newContent;
+        isDirtyRef.current = true;
+
+        requestAnimationFrame(() => {
+            setFileContent(newContent);
+        });
+    }, []);
 
     const fileItems = useMemo(() => {
         const items = [];
@@ -299,6 +339,14 @@ export default function App() {
     const tabItems = useMemo(() => openTabs.map((filename) => (
         <div key={filename} className={`tab-item ${currentFile === filename ? 'active' : ''}`}
              onClick={async () => {
+                 if (isDirtyRef.current && currentFile && currentFile !== filename) {
+                     const confirmSave = window.confirm("You have unsaved changes. Do you want to save them before switching tabs?");
+                     if (confirmSave) {
+                         await handleSaveFile();
+                     }
+                     isDirtyRef.current = false;
+                 }
+
                  setCurrentFile(filename);
                  const selectedFile = fileList.find((file) => file.name === filename && !('kind' in file));
                  if (selectedFile) {
@@ -309,8 +357,10 @@ export default function App() {
                          const url = URL.createObjectURL(file);
                          setMediaURL(url);
                          setFileContent('');
+                         contentRef.current = '';
                      } else {
                          const content = await file.text();
+                         contentRef.current = content;
                          setFileContent(content);
                          setMediaURL(null);
                      }
@@ -323,7 +373,7 @@ export default function App() {
             }}>X
             </button>
         </div>
-    )), [openTabs, currentFile, closeTab, fileList]);
+    )), [openTabs, currentFile, closeTab, fileList, handleSaveFile]);
 
     if (showSettings) {
         return <Settings setShowSettings={setShowSettings} version={version}/>;
@@ -344,7 +394,7 @@ export default function App() {
                 <div className="editor">
                     {!mediaURL && (
                         <div className="line-numbers">
-                            {Array.from({length: 99999}, (_, i) => (
+                            {Array.from({length: fileContent.split('\n').length}, (_, i) => (
                                 <div key={i} className="line-number">{i + 1}</div>
                             ))}
                         </div>
@@ -372,7 +422,7 @@ export default function App() {
                             spellCheck={false}
                             autoFocus
                             value={fileContent}
-                            onChange={(e) => setFileContent(e.target.value)}
+                            onChange={handleEditorChange}
                             onScroll={(e) => {
                                 const gutter = document.querySelector('.line-numbers');
                                 if (gutter)
