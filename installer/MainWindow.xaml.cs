@@ -22,7 +22,7 @@ namespace Installer
         private const string AppDisplayName = "XD's Code";
         private const string AppVersion = "0.4.0";
         private const string ShortcutName = AppDisplayName + ".lnk";
-        private const string DownloadUrl = $"https://raw.githubusercontent.com/XDPXI/XDs-Code/main/installer/releases/{AppVersion}.zip";
+        private const string DownloadUrl = "https://raw.githubusercontent.com/XDPXI/XDs-Code/main/installer/releases/0.4.0.zip";
 
         // Paths
         private readonly string _localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
