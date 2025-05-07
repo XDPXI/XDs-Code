@@ -27,7 +27,7 @@ jobs:
       - name: Build Tauri app (Windows)
         run: pnpm tauri build
 
-  build-macos:
+  build-macos-intel:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v3
@@ -45,6 +45,22 @@ jobs:
 
       - name: Build Tauri app (macOS) (intel)
         run: pnpm tauri build -- --target x86_64-apple-darwin
+
+  build-macos-aarch64:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install pnpm
+        run: npm install -g pnpm
+
+      - name: Install dependencies
+        run: pnpm install
 
       - name: Build Tauri app (macOS) (aarch64)
         run: pnpm tauri build -- --target aarch64-apple-darwin
