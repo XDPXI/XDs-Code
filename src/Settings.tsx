@@ -1,4 +1,5 @@
 ﻿import {useCallback} from "react";
+import {detect} from "detect-browser";
 
 interface SettingsProps {
     setShowSettings: (show: boolean) => void;
@@ -10,9 +11,7 @@ export default function Settings({setShowSettings, version}: SettingsProps) {
         setShowSettings(false);
     }, [setShowSettings]);
 
-    const downloadInstaller = () => {
-        window.location.href = `https://github.com/XDPXI/XDs-Code/releases/download/${version}/xds-code_installer_${version}_windows.exe`;
-    };
+    const browser = detect();
 
     return (
         <div className="starter-screen">
@@ -20,9 +19,9 @@ export default function Settings({setShowSettings, version}: SettingsProps) {
             <div className="settings-info">
                 <p><strong>Name:</strong> XD's Code</p>
                 <p><strong>Version:</strong> {version}</p>
-            </div>
-            <div className="settings-actions">
-                <button className="starter-btn" onClick={downloadInstaller}>Download Uninstaller</button>
+                <p><strong>Browser Name:</strong> {browser?.name}</p>
+                <p><strong>Browser Version:</strong> {browser?.version}</p>
+                <p><strong>Browser OS:</strong> {browser?.os}</p>
             </div>
             <div className="settings-actions">
                 <button className="starter-btn" onClick={handleCloseSettings}>Close Settings</button>

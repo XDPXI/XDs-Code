@@ -14,6 +14,9 @@ importers:
       '@tauri-apps/plugin-opener':
         specifier: ^2.2.6
         version: 2.2.6
+      detect-browser:
+        specifier: ^5.3.0
+        version: 5.3.0
       react:
         specifier: ^19.1.0
         version: 19.1.0
@@ -521,6 +524,9 @@ packages:
     peerDependenciesMeta:
       supports-color:
         optional: true
+
+  detect-browser@5.3.0:
+    resolution: {integrity: sha512-53rsFbGdwMwlF7qvCt0ypLM5V5/Mbl0szB7GPN8y9NCcbknYOeVVXdrXEq+90IwAfrrzt6Hd+u2E2ntakICU8w==}
 
   electron-to-chromium@1.5.150:
     resolution: {integrity: sha512-rOOkP2ZUMx1yL4fCxXQKDHQ8ZXwisb2OycOQVKHgvB3ZI4CvehOd4y2tfnnLDieJ3Zs1RL1Dlp3cMkyIn7nnXA==}
@@ -1060,6 +1066,8 @@ snapshots:
   debug@4.4.0:
     dependencies:
       ms: 2.1.3
+
+  detect-browser@5.3.0: {}
 
   electron-to-chromium@1.5.150: {}
 
