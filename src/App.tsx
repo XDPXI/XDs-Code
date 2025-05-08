@@ -1,6 +1,5 @@
 import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import './App.css';
-import pjson from "../package.json";
 import Settings from "./Settings.tsx";
 import Starter from "./Starter.tsx";
 
@@ -64,23 +63,8 @@ export default function App() {
     const editorRef = useRef<HTMLTextAreaElement>(null);
     const [mediaURL, setMediaURL] = useState<string | null>(null);
     const [showSettings, setShowSettings] = useState<boolean>(false);
-    const [version, setVersion] = useState("0.0.0")
     const contentRef = useRef<string>('');
     const isDirtyRef = useRef<boolean>(false);
-
-    useEffect(() => {
-        const fetchVersion = async () => {
-            try {
-                const appVersion = pjson.version;
-                setVersion(appVersion);
-            } catch (error) {
-                console.error("Failed to get app version:", error);
-                setVersion("N/A");
-            }
-        };
-
-        fetchVersion();
-    }, []);
 
     const isImageFile = (filename: string) => {
         return /\.(png|ico|icns|jpe?g|gif|webp|svg)$/i.test(filename);
@@ -376,7 +360,7 @@ export default function App() {
     )), [openTabs, currentFile, closeTab, fileList, handleSaveFile]);
 
     if (showSettings) {
-        return <Settings setShowSettings={setShowSettings} version={version}/>;
+        return <Settings setShowSettings={setShowSettings}/>;
     } else if (!hasOpened) {
         return <Starter handleOpenFolder={handleOpenFolder} handleOpenSettings={handleOpenSettings}/>;
     }
