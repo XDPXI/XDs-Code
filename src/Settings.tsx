@@ -20,6 +20,7 @@ export default function Settings({setShowSettings, version}: SettingsProps) {
                 <p><strong>Name:</strong> XD's Code</p>
                 <p><strong>Version:</strong> {version}</p>
                 <p><strong>Browser Name:</strong> {browser?.name}</p>
+                <p><strong>Browser Type:</strong> {browser?.type}</p>
                 <p><strong>Browser Version:</strong> {browser?.version}</p>
                 <p><strong>Browser OS:</strong> {browser?.os}</p>
             </div>
