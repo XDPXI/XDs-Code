@@ -1,8 +1,8 @@
-﻿name: Build Tauri App
+﻿name: Build Web App
 
 on:
   push:
-    branches: [ main ]
+    branches: [ website ]
 
 jobs:
   build:
@@ -22,4 +22,4 @@ jobs:
         run: pnpm install
 
       - name: Build Tauri app (Windows)
-        run: pnpm tauri build
+        run: pnpm run build
