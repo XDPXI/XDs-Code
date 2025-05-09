@@ -48,7 +48,7 @@ export default function Settings({setShowSettings}: SettingsProps) {
                 window.location.href = `https://github.com/XDPXI/XDs-Code/releases/latest/download/xds-code_${version}_x86-64-macos.dmg`;
                 break;
             case 'windows':
-                window.location.href = `https://github.com/XDPXI/XDs-Code/releases/latest/download/xds-code_${version}_x86-64-macos.dmg`;
+                window.location.href = `https://github.com/XDPXI/XDs-Code/releases/latest/download/xds-code_${version}_x86-64-windows.exe`;
                 break;
             default:
                 console.error(`Unsupported platform: ${platform}`);
