@@ -145,8 +145,7 @@ export default function App() {
                 const dirHandle = await (window as any).showDirectoryPicker();
                 setDirStack([]);
                 await readDirectory(dirHandle);
-            }
-            else {
+            } else {
                 const input = document.createElement('input');
                 input.type = 'file';
                 input.webkitdirectory = true;
@@ -266,7 +265,7 @@ export default function App() {
             setFileList(prev =>
                 prev.map(entry =>
                     'handle' in entry && entry.name === currentFile
-                        ? { ...entry, content: contentToSave }
+                        ? {...entry, content: contentToSave}
                         : entry
                 )
             );
