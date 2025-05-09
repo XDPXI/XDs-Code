@@ -1,7 +1,7 @@
 {
   "name": "xds-code",
   "private": true,
-  "version": "0.4.0-WEB",
+  "version": "0.4.0",
   "type": "module",
   "scripts": {
     "dev": "vite dev",
@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "detect-browser": "^5.3.0",
+    "pjson": "^1.0.9",
     "react": "^19.1.0",
     "react-dom": "^19.1.0"
   },

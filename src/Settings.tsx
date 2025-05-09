@@ -1,5 +1,6 @@
 ﻿import {useCallback, useEffect, useState} from "react";
 import {detect} from "detect-browser";
+import * as pjson from "pjson";
 
 interface SettingsProps {
     setShowSettings: (show: boolean) => void;
@@ -40,13 +41,13 @@ export default function Settings({setShowSettings}: SettingsProps) {
     const download = useCallback((platform: String) => {
         switch (platform) {
             case 'mac-apple-silicone':
-                window.location.href = `https://github.com/XDPXI/XDs-Code/releases/latest/download/xds-code_0.4.0_aarch64-macos.dmg`;
+                window.location.href = `https://github.com/XDPXI/XDs-Code/releases/latest/download/xds-code_${pjson.version}_aarch64-macos.dmg`;
                 break;
             case 'mac-intel':
-                window.location.href = `https://github.com/XDPXI/XDs-Code/releases/latest/download/xds-code_0.4.0_aarch64-macos.dmg`;
+                window.location.href = `https://github.com/XDPXI/XDs-Code/releases/latest/download/xds-code_${pjson.version}_x86-64-macos.dmg`;
                 break;
             case 'windows':
-                window.location.href = `https://github.com/XDPXI/XDs-Code/releases/latest/download/xds-code_0.4.0_aarch64-macos.dmg`;
+                window.location.href = `https://github.com/XDPXI/XDs-Code/releases/latest/download/xds-code_${pjson.version}_x86-64-macos.dmg`;
                 break;
             default:
                 console.error(`Unsupported platform: ${platform}`);
