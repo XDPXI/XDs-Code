@@ -18,10 +18,11 @@ export default function Settings({setShowSettings, version}: SettingsProps) {
             <h2 className="starter-title">Settings</h2>
             <div className="settings-info">
                 <p><strong>Name:</strong> XD's Code</p>
-                <p><strong>Version:</strong> {version}</p>
-                <p><strong>Browser Name:</strong> {browser?.name}</p>
-                <p><strong>Browser Version:</strong> {browser?.version}</p>
-                <p><strong>Browser OS:</strong> {browser?.os}</p>
+                <p><strong>Version:</strong> {version || "Loading..."}</p>
+                <p><strong>Browser Name:</strong> {browser?.name || "Loading..."}</p>
+                <p><strong>Browser Type:</strong> {browser?.type || "Loading..."}</p>
+                <p><strong>Browser Version:</strong> {browser?.version || "Loading..."}</p>
+                <p><strong>Browser OS:</strong> {browser?.os || "Loading..."}</p>
             </div>
             <div className="settings-actions">
                 <button className="starter-btn" onClick={handleCloseSettings}>Close Settings</button>

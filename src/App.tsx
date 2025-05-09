@@ -100,7 +100,7 @@ export default function App() {
         setCurrentFile(filename);
     }, [openTabs]);
 
-    const closeTab = useCallback((filename: string) => {
+    const closeTab = useCallback((filename: string | null) => {
         setOpenTabs(openTabs.filter((file) => file !== filename));
         if (currentFile === filename) {
             if (openTabs.length > 1) {
@@ -145,7 +145,8 @@ export default function App() {
                 const dirHandle = await (window as any).showDirectoryPicker();
                 setDirStack([]);
                 await readDirectory(dirHandle);
-            } else {
+            }
+            else {
                 const input = document.createElement('input');
                 input.type = 'file';
                 input.webkitdirectory = true;
@@ -247,7 +248,10 @@ export default function App() {
     }, [dirStack, readDirectory]);
 
     const handleSaveFile = useCallback(async () => {
-        if (!currentFile) return;
+        if (!currentFile) {
+            console.error("No file to save");
+            return;
+        }
 
         try {
             const fileEntry = fileList.find((f) => 'handle' in f && f.name === currentFile);
@@ -278,11 +282,15 @@ export default function App() {
     }, [currentFile, fileList]);
 
     const handleKeyDown = useCallback((e: KeyboardEvent) => {
-        if (e.ctrlKey && e.key === 's') {
+        if (e.ctrlKey && e.key === 's' || e.metaKey && e.key ==='s') {
             e.preventDefault();
             handleSaveFile();
         }
-    }, [handleSaveFile]);
+        if (e.ctrlKey && e.key === 'w' || e.metaKey && e.key ==='w') {
+            e.preventDefault();
+            closeTab(currentFile);
+        }
+    }, [handleSaveFile, closeTab]);
 
     useEffect(() => {
         window.addEventListener('keydown', handleKeyDown);
@@ -334,6 +342,19 @@ export default function App() {
 
         return items;
     }, [fileList, handleFileClick, goBackDirectory, dirStack]);
+
+    useEffect(() => {
+        const lineNumbers = document.getElementById('lineNumbers');
+        const fileContents = document.getElementById('fileContents');
+
+        if (currentFile === null && (lineNumbers && fileContents)) {
+            lineNumbers.style.display = 'none';
+            fileContents.style.display = 'none';
+        } else if (currentFile && (lineNumbers && fileContents)) {
+            lineNumbers.style.display = 'block';
+            fileContents.style.display = 'block';
+        }
+    }, [currentFile])
 
     const tabItems = useMemo(() => openTabs.map((filename) => (
         <div key={filename} className={`tab-item ${currentFile === filename ? 'active' : ''}`}
@@ -392,7 +413,7 @@ export default function App() {
                 <div className="tabs">{tabItems}</div>
                 <div className="editor">
                     {!mediaURL && (
-                        <div className="line-numbers">
+                        <div id="lineNumbers" className="line-numbers">
                             {Array.from({length: fileContent.split('\n').length}, (_, i) => (
                                 <div key={i} className="line-number">{i + 1}</div>
                             ))}
@@ -422,6 +443,7 @@ export default function App() {
                             autoFocus
                             value={fileContent}
                             onChange={handleEditorChange}
+                            id="fileContents"
                             onScroll={(e) => {
                                 const gutter = document.querySelector('.line-numbers');
                                 if (gutter)
