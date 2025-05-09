@@ -11,9 +11,6 @@ importers:
       detect-browser:
         specifier: ^5.3.0
         version: 5.3.0
-      pjson:
-        specifier: ^1.0.9
-        version: 1.0.9
       react:
         specifier: ^19.1.0
         version: 19.1.0
@@ -512,9 +509,6 @@ packages:
     resolution: {integrity: sha512-M7BAV6Rlcy5u+m6oPhAPFgJTzAioX/6B0DxyvDlo9l8+T3nLKbrczg2WLUyzd45L8RqfUMyGPzekbMvX2Ldkwg==}
     engines: {node: '>=12'}
 
-  pjson@1.0.9:
-    resolution: {integrity: sha512-4hRJH3YzkUpOlShRzhyxAmThSNnAaIlWZCAb27hd0pVUAXNUAHAO7XZbsPPvsCYwBFEScTmCCL6DGE8NyZ8BdQ==}
-
   postcss@8.5.3:
     resolution: {integrity: sha512-dle9A3yYxlBSrt8Fu+IpjGT8SY8hN0mlaA6GY8t0P5PjIOZemULz/E2Bnm/2dcUOena75OTNkHI76uZBNUUq3A==}
     engines: {node: ^10 || ^12 || >=14}
@@ -998,8 +992,6 @@ snapshots:
   picocolors@1.1.1: {}
 
   picomatch@4.0.2: {}
-
-  pjson@1.0.9: {}
 
   postcss@8.5.3:
     dependencies:
