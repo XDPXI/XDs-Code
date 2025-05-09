@@ -5,8 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "pnpm tauri dev",
-    "build": "pnpm tauri build",
-    "build-dev": "pnpm tauri build --debug"
+    "build": "pnpm tauri build"
   },
   "dependencies": {
     "@tauri-apps/api": "^2.5.0",
