@@ -70,7 +70,9 @@ export default function Settings({setShowSettings}: SettingsProps) {
             <div className="starter-screen">
                 <h2 id="downloadTitle" className="starter-title">Download</h2>
                 <div id="downloadButtons" className="settings-actions">
-                    <button className="starter-btn" onClick={() => download("mac-apple-silicone")}>MacOS (Apple Silicone)</button>
+                    <button className="starter-btn" onClick={() => download("mac-apple-silicone")}>MacOS (Apple
+                        Silicone)
+                    </button>
                     <button className="starter-btn" onClick={() => download("mac-intel")}>MacOS (Intel)</button>
                     <button className="starter-btn" onClick={() => download("windows")}>Windows</button>
                 </div>
@@ -86,7 +88,8 @@ export default function Settings({setShowSettings}: SettingsProps) {
             <h2 className="starter-title">Settings</h2>
             <div className="settings-info">
                 <p><strong>Name:</strong> XD's Code</p>
-                <p><strong>Version:</strong> <a href={`https://github.com/XDPXI/XDs-Code/commit/${sha}`}>{sha || "Loading..."}</a></p>
+                <p><strong>Version:</strong> <a
+                    href={`https://github.com/XDPXI/XDs-Code/commit/${sha}`}>{sha || "Loading..."}</a></p>
                 <p><strong>Browser Name:</strong> {browser?.name || "Loading..."}</p>
                 <p><strong>Browser Type:</strong> {browser?.type || "Loading..."}</p>
                 <p><strong>Browser Version:</strong> {browser?.version || "Loading..."}</p>
