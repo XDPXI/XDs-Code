@@ -472,6 +472,7 @@ export default function App() {
                         <div className="media-preview">
                             <video controls style={{maxWidth: '100%', maxHeight: '100%'}}>
                                 <source src={mediaURL}/>
+                                <track kind="captions" src="" label="English" srcLang="en" default/>
                                 Your browser does not support the video tag.
                             </video>
                         </div>
