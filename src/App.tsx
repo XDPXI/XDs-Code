@@ -324,7 +324,7 @@ export default function App() {
 
         if (dirStack.length > 0) {
             items.push(
-                <div
+                <button
                     key="up"
                     className="file-item"
                     onClick={goBackDirectory}
@@ -334,12 +334,11 @@ export default function App() {
                             goBackDirectory();
                         }
                     }}
-                    tabIndex={0}
-                    role="button"
+                    type="button"
                     aria-label="Go to parent directory"
                 >
                     <i className="fa-solid fa-arrow-up"/> ..
-                </div>
+                </button>
             );
         }
 
@@ -347,7 +346,7 @@ export default function App() {
             const isFolder = 'kind' in entry && entry.kind === 'directory';
             const icon = isFolder ? 'fa-solid fa-folder' : getFileIcon(entry.name);
             items.push(
-                <div
+                <button
                     key={entry.name}
                     className="file-item"
                     onClick={() => handleFileClick(entry)}
@@ -357,12 +356,11 @@ export default function App() {
                             handleFileClick(entry);
                         }
                     }}
-                    tabIndex={0}
-                    role="button"
+                    type="button"
                     aria-label={isFolder ? `Open folder ${entry.name}` : `Open file ${entry.name}`}
                 >
                     <i className={`file-icon ${icon}`}/> {entry.name}
-                </div>
+                </button>
             );
         }
 
@@ -383,7 +381,7 @@ export default function App() {
     }, [currentFile])
 
     const tabItems = useMemo(() => openTabs.map((filename) => (
-        <div
+        <button
             key={filename}
             className={`tab-item ${currentFile === filename ? 'active' : ''}`}
             onClick={async () => {
@@ -414,38 +412,7 @@ export default function App() {
                     }
                 }
             }}
-            onKeyDown={async (e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    if (isDirtyRef.current && currentFile && currentFile !== filename) {
-                        const confirmSave = window.confirm("You have unsaved changes. Do you want to save them before switching tabs?");
-                        if (confirmSave) {
-                            await handleSaveFile();
-                        }
-                        isDirtyRef.current = false;
-                    }
-
-                    setCurrentFile(filename);
-                    const selectedFile = fileList.find((file) => file.name === filename && !('kind' in file));
-                    if (selectedFile) {
-                        // @ts-ignore
-                        const file = await selectedFile.handle.getFile();
-
-                        if (isImageFile(filename) || isVideoFile(filename)) {
-                            const url = URL.createObjectURL(file);
-                            setMediaURL(url);
-                            setFileContent('');
-                            contentRef.current = '';
-                        } else {
-                            const content = await file.text();
-                            contentRef.current = content;
-                            setFileContent(content);
-                            setMediaURL(null);
-                        }
-                    }
-                }
-            }}
-            tabIndex={0}
+            type="button"
             role="tab"
             aria-selected={currentFile === filename}
         >
@@ -453,14 +420,22 @@ export default function App() {
             <button
                 className="close-tab-btn"
                 onClick={(e) => {
-                e.stopPropagation();
-                closeTab(filename);
+                    e.stopPropagation();
+                    closeTab(filename);
+                }}
+                onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.stopPropagation();
+                        closeTab(filename);
+                    }
                 }}
                 aria-label={`Close ${filename} tab`}
+                tabIndex={0}
+                type="button"
             >
                 X
             </button>
-        </div>
+        </button>
     )), [openTabs, currentFile, closeTab, fileList, handleSaveFile]);
 
     if (showSettings) {
