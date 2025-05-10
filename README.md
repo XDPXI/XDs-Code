@@ -37,4 +37,10 @@
    pnpm install
    ```
 
+4. Build the project:
+
+   ```bash
+   pnpm run build
+   ```
+
 ---
