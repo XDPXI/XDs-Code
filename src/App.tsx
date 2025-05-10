@@ -66,6 +66,8 @@ export default function App() {
     const contentRef = useRef<string>('');
     const isDirtyRef = useRef<boolean>(false);
 
+
+
     const isImageFile = (filename: string) => {
         return /\.(png|ico|icns|jpe?g|gif|webp|svg)$/i.test(filename);
     };
@@ -88,7 +90,7 @@ export default function App() {
         setOpenTabs(openTabs.filter((file) => file !== filename));
         if (currentFile === filename) {
             if (openTabs.length > 1) {
-                const newCurrentFile = openTabs.find(tab => tab !== filename) || null;
+                const newCurrentFile = openTabs.find(tab => tab !== filename) ?? null;
                 setCurrentFile(newCurrentFile);
             } else {
                 setCurrentFile(null);
@@ -307,9 +309,21 @@ export default function App() {
 
         if (dirStack.length > 0) {
             items.push(
-                <div key="up" className="file-item" onClick={goBackDirectory}>
+                <button
+                    key="up"
+                    className="file-item"
+                    onClick={goBackDirectory}
+                    onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            goBackDirectory();
+                        }
+                    }}
+                    type="button"
+                    aria-label="Go to parent directory"
+                >
                     <i className="fa-solid fa-arrow-up"/> ..
-                </div>
+                </button>
             );
         }
 
@@ -317,9 +331,21 @@ export default function App() {
             const isFolder = 'kind' in entry && entry.kind === 'directory';
             const icon = isFolder ? 'fa-solid fa-folder' : getFileIcon(entry.name);
             items.push(
-                <div key={entry.name} className="file-item" onClick={() => handleFileClick(entry)}>
+                <button
+                    key={entry.name}
+                    className="file-item"
+                    onClick={() => handleFileClick(entry)}
+                    onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            handleFileClick(entry);
+                        }
+                    }}
+                    type="button"
+                    aria-label={isFolder ? `Open folder ${entry.name}` : `Open file ${entry.name}`}
+                >
                     <i className={`file-icon ${icon}`}/> {entry.name}
-                </div>
+                </button>
             );
         }
 
@@ -339,43 +365,64 @@ export default function App() {
         }
     }, [currentFile])
 
+    const handleTabClick = useCallback(async (filename: string) => {
+        if (isDirtyRef.current && currentFile && currentFile !== filename) {
+            const confirmSave = window.confirm("You have unsaved changes. Do you want to save them before switching tabs?");
+            if (confirmSave) {
+                await handleSaveFile();
+            }
+            isDirtyRef.current = false;
+        }
+
+        setCurrentFile(filename);
+        const selectedFile = fileList.find((file) => file.name === filename && !('kind' in file));
+        if (!selectedFile) return;
+
+        // @ts-ignore
+        const file = await selectedFile.handle.getFile();
+
+        if (isImageFile(filename) || isVideoFile(filename)) {
+            const url = URL.createObjectURL(file);
+            setMediaURL(url);
+            setFileContent('');
+            contentRef.current = '';
+        } else {
+            const content = await file.text();
+            contentRef.current = content;
+            setFileContent(content);
+            setMediaURL(null);
+        }
+    }, [currentFile, fileList, handleSaveFile]);
+
     const tabItems = useMemo(() => openTabs.map((filename) => (
-        <div key={filename} className={`tab-item ${currentFile === filename ? 'active' : ''}`}
-             onClick={async () => {
-                 if (isDirtyRef.current && currentFile && currentFile !== filename) {
-                     const confirmSave = window.confirm("You have unsaved changes. Do you want to save them before switching tabs?");
-                     if (confirmSave) {
-                         await handleSaveFile();
-                     }
-                     isDirtyRef.current = false;
-                 }
-
-                 setCurrentFile(filename);
-                 const selectedFile = fileList.find((file) => file.name === filename && !('kind' in file));
-                 if (selectedFile) {
-                     // @ts-ignore
-                     const file = await selectedFile.handle.getFile();
-
-                     if (isImageFile(filename) || isVideoFile(filename)) {
-                         const url = URL.createObjectURL(file);
-                         setMediaURL(url);
-                         setFileContent('');
-                         contentRef.current = '';
-                     } else {
-                         const content = await file.text();
-                         contentRef.current = content;
-                         setFileContent(content);
-                         setMediaURL(null);
-                     }
-                 }
-             }}>
+        <button
+            key={filename}
+            className={`tab-item ${currentFile === filename ? 'active' : ''}`}
+            onClick={() => handleTabClick(filename)}
+            type="button"
+            role="tab"
+            aria-selected={currentFile === filename}
+        >
             {filename}
-            <button className="close-tab-btn" onClick={(e) => {
-                e.stopPropagation();
-                closeTab(filename);
-            }}>X
+            <button
+                className="close-tab-btn"
+                onClick={(e) => {
+                    e.stopPropagation();
+                    closeTab(filename);
+                }}
+                onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.stopPropagation();
+                        closeTab(filename);
+                    }
+                }}
+                aria-label={`Close ${filename} tab`}
+                tabIndex={0}
+                type="button"
+            >
+                X
             </button>
-        </div>
+        </button>
     )), [openTabs, currentFile, closeTab, fileList, handleSaveFile]);
 
     if (showSettings) {
@@ -403,16 +450,17 @@ export default function App() {
                         </div>
                     )}
 
-                    {mediaURL && isImageFile(currentFile || '') && (
+                    {mediaURL && isImageFile(currentFile ?? '') && (
                         <div className="media-preview">
-                            <img src={mediaURL} alt={currentFile || ''} style={{maxWidth: '100%', maxHeight: '100%'}}/>
+                            <img src={mediaURL} alt={currentFile ?? ''} style={{maxWidth: '100%', maxHeight: '100%'}}/>
                         </div>
                     )}
 
-                    {mediaURL && isVideoFile(currentFile || '') && (
+                    {mediaURL && isVideoFile(currentFile ?? '') && (
                         <div className="media-preview">
                             <video controls style={{maxWidth: '100%', maxHeight: '100%'}}>
                                 <source src={mediaURL}/>
+                                <track kind="captions" src="" label="English" srcLang="en" default/>
                                 Your browser does not support the video tag.
                             </video>
                         </div>

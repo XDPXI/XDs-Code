@@ -5,7 +5,7 @@ interface SettingsProps {
     setShowSettings: (show: boolean) => void;
 }
 
-export default function Settings({setShowSettings}: SettingsProps) {
+export default function Settings({setShowSettings}: Readonly<SettingsProps>) {
     const handleCloseSettings = useCallback(() => {
         setDownloadingApp(false)
         setShowSettings(false);
@@ -89,11 +89,11 @@ export default function Settings({setShowSettings}: SettingsProps) {
             <div className="settings-info">
                 <p><strong>Name:</strong> XD's Code</p>
                 <p><strong>Version:</strong> <a
-                    href={`https://github.com/XDPXI/XDs-Code/commit/${sha}`}>{sha || "Loading..."}</a></p>
-                <p><strong>Browser Name:</strong> {browser?.name || "Loading..."}</p>
-                <p><strong>Browser Type:</strong> {browser?.type || "Loading..."}</p>
-                <p><strong>Browser Version:</strong> {browser?.version || "Loading..."}</p>
-                <p><strong>Browser OS:</strong> {browser?.os || "Loading..."}</p>
+                    href={`https://github.com/XDPXI/XDs-Code/commit/${sha}`}>{sha ?? "Loading..."}</a></p>
+                <p><strong>Browser Name:</strong> {browser?.name ?? "Loading..."}</p>
+                <p><strong>Browser Type:</strong> {browser?.type ?? "Loading..."}</p>
+                <p><strong>Browser Version:</strong> {browser?.version ?? "Loading..."}</p>
+                <p><strong>Browser OS:</strong> {browser?.os ?? "Loading..."}</p>
             </div>
             <div className="settings-actions">
                 <button className="starter-btn" onClick={downloadApp}>Download App</button>
