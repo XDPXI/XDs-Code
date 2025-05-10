@@ -104,7 +104,7 @@ export default function App() {
         setOpenTabs(openTabs.filter((file) => file !== filename));
         if (currentFile === filename) {
             if (openTabs.length > 1) {
-                const newCurrentFile = openTabs.find(tab => tab !== filename) || null;
+                const newCurrentFile = openTabs.find(tab => tab !== filename) ?? null;
                 setCurrentFile(newCurrentFile);
             } else {
                 setCurrentFile(null);
