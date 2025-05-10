@@ -324,7 +324,20 @@ export default function App() {
 
         if (dirStack.length > 0) {
             items.push(
-                <div key="up" className="file-item" onClick={goBackDirectory}>
+                <div
+                    key="up"
+                    className="file-item"
+                    onClick={goBackDirectory}
+                    onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            goBackDirectory();
+                        }
+                    }}
+                    tabIndex={0}
+                    role="button"
+                    aria-label="Go to parent directory"
+                >
                     <i className="fa-solid fa-arrow-up"/> ..
                 </div>
             );
@@ -334,7 +347,20 @@ export default function App() {
             const isFolder = 'kind' in entry && entry.kind === 'directory';
             const icon = isFolder ? 'fa-solid fa-folder' : getFileIcon(entry.name);
             items.push(
-                <div key={entry.name} className="file-item" onClick={() => handleFileClick(entry)}>
+                <div
+                    key={entry.name}
+                    className="file-item"
+                    onClick={() => handleFileClick(entry)}
+                    onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            handleFileClick(entry);
+                        }
+                    }}
+                    tabIndex={0}
+                    role="button"
+                    aria-label={isFolder ? `Open folder ${entry.name}` : `Open file ${entry.name}`}
+                >
                     <i className={`file-icon ${icon}`}/> {entry.name}
                 </div>
             );
