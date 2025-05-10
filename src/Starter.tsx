@@ -3,7 +3,7 @@
     handleOpenSettings: () => void;
 }
 
-export default function Starter({handleOpenFolder, handleOpenSettings}: StarterProps) {
+export default function Starter({handleOpenFolder, handleOpenSettings}: Readonly<StarterProps>) {
     return (
         <div className="starter-screen">
             <h1 className="starter-title">XD's Code</h1>
