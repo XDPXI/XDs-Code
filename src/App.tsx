@@ -145,8 +145,7 @@ export default function App() {
                 const dirHandle = await (window as any).showDirectoryPicker();
                 setDirStack([]);
                 await readDirectory(dirHandle);
-            }
-            else {
+            } else {
                 const input = document.createElement('input');
                 input.type = 'file';
                 input.webkitdirectory = true;
@@ -282,11 +281,11 @@ export default function App() {
     }, [currentFile, fileList]);
 
     const handleKeyDown = useCallback((e: KeyboardEvent) => {
-        if (e.ctrlKey && e.key === 's' || e.metaKey && e.key ==='s') {
+        if (e.ctrlKey && e.key === 's' || e.metaKey && e.key === 's') {
             e.preventDefault();
             handleSaveFile();
         }
-        if (e.ctrlKey && e.key === 'w' || e.metaKey && e.key ==='w') {
+        if (e.ctrlKey && e.key === 'w' || e.metaKey && e.key === 'w') {
             e.preventDefault();
             closeTab(currentFile);
         }
