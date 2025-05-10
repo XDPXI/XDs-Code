@@ -379,38 +379,40 @@ export default function App() {
         }
     }, [currentFile])
 
+    const handleTabClick = useCallback(async (filename: string) => {
+        if (isDirtyRef.current && currentFile && currentFile !== filename) {
+            const confirmSave = window.confirm("You have unsaved changes. Do you want to save them before switching tabs?");
+            if (confirmSave) {
+                await handleSaveFile();
+            }
+            isDirtyRef.current = false;
+        }
+
+        setCurrentFile(filename);
+        const selectedFile = fileList.find((file) => file.name === filename && !('kind' in file));
+        if (!selectedFile) return;
+
+        // @ts-ignore
+        const file = await selectedFile.handle.getFile();
+
+        if (isImageFile(filename) || isVideoFile(filename)) {
+            const url = URL.createObjectURL(file);
+            setMediaURL(url);
+            setFileContent('');
+            contentRef.current = '';
+        } else {
+            const content = await file.text();
+            contentRef.current = content;
+            setFileContent(content);
+            setMediaURL(null);
+        }
+    }, [currentFile, fileList, handleSaveFile]);
+
     const tabItems = useMemo(() => openTabs.map((filename) => (
         <button
             key={filename}
             className={`tab-item ${currentFile === filename ? 'active' : ''}`}
-            onClick={async () => {
-                if (isDirtyRef.current && currentFile && currentFile !== filename) {
-                    const confirmSave = window.confirm("You have unsaved changes. Do you want to save them before switching tabs?");
-                    if (confirmSave) {
-                        await handleSaveFile();
-                    }
-                    isDirtyRef.current = false;
-                }
-
-                setCurrentFile(filename);
-                const selectedFile = fileList.find((file) => file.name === filename && !('kind' in file));
-                if (selectedFile) {
-                    // @ts-ignore
-                    const file = await selectedFile.handle.getFile();
-
-                    if (isImageFile(filename) || isVideoFile(filename)) {
-                        const url = URL.createObjectURL(file);
-                        setMediaURL(url);
-                        setFileContent('');
-                        contentRef.current = '';
-                    } else {
-                        const content = await file.text();
-                        contentRef.current = content;
-                        setFileContent(content);
-                        setMediaURL(null);
-                    }
-                }
-            }}
+            onClick={() => handleTabClick(filename)}
             type="button"
             role="tab"
             aria-selected={currentFile === filename}
