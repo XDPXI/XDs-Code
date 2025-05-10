@@ -357,40 +357,82 @@ export default function App() {
     }, [currentFile])
 
     const tabItems = useMemo(() => openTabs.map((filename) => (
-        <div key={filename} className={`tab-item ${currentFile === filename ? 'active' : ''}`}
-             onClick={async () => {
-                 if (isDirtyRef.current && currentFile && currentFile !== filename) {
-                     const confirmSave = window.confirm("You have unsaved changes. Do you want to save them before switching tabs?");
-                     if (confirmSave) {
-                         await handleSaveFile();
-                     }
-                     isDirtyRef.current = false;
-                 }
+        <div
+            key={filename}
+            className={`tab-item ${currentFile === filename ? 'active' : ''}`}
+            onClick={async () => {
+                if (isDirtyRef.current && currentFile && currentFile !== filename) {
+                    const confirmSave = window.confirm("You have unsaved changes. Do you want to save them before switching tabs?");
+                    if (confirmSave) {
+                        await handleSaveFile();
+                    }
+                    isDirtyRef.current = false;
+                }
 
-                 setCurrentFile(filename);
-                 const selectedFile = fileList.find((file) => file.name === filename && !('kind' in file));
-                 if (selectedFile) {
-                     // @ts-ignore
-                     const file = await selectedFile.handle.getFile();
+                setCurrentFile(filename);
+                const selectedFile = fileList.find((file) => file.name === filename && !('kind' in file));
+                if (selectedFile) {
+                    // @ts-ignore
+                    const file = await selectedFile.handle.getFile();
 
-                     if (isImageFile(filename) || isVideoFile(filename)) {
-                         const url = URL.createObjectURL(file);
-                         setMediaURL(url);
-                         setFileContent('');
-                         contentRef.current = '';
-                     } else {
-                         const content = await file.text();
-                         contentRef.current = content;
-                         setFileContent(content);
-                         setMediaURL(null);
-                     }
-                 }
-             }}>
+                    if (isImageFile(filename) || isVideoFile(filename)) {
+                        const url = URL.createObjectURL(file);
+                        setMediaURL(url);
+                        setFileContent('');
+                        contentRef.current = '';
+                    } else {
+                        const content = await file.text();
+                        contentRef.current = content;
+                        setFileContent(content);
+                        setMediaURL(null);
+                    }
+                }
+            }}
+            onKeyDown={async (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    if (isDirtyRef.current && currentFile && currentFile !== filename) {
+                        const confirmSave = window.confirm("You have unsaved changes. Do you want to save them before switching tabs?");
+                        if (confirmSave) {
+                            await handleSaveFile();
+                        }
+                        isDirtyRef.current = false;
+                    }
+
+                    setCurrentFile(filename);
+                    const selectedFile = fileList.find((file) => file.name === filename && !('kind' in file));
+                    if (selectedFile) {
+                        // @ts-ignore
+                        const file = await selectedFile.handle.getFile();
+
+                        if (isImageFile(filename) || isVideoFile(filename)) {
+                            const url = URL.createObjectURL(file);
+                            setMediaURL(url);
+                            setFileContent('');
+                            contentRef.current = '';
+                        } else {
+                            const content = await file.text();
+                            contentRef.current = content;
+                            setFileContent(content);
+                            setMediaURL(null);
+                        }
+                    }
+                }
+            }}
+            tabIndex={0}
+            role="tab"
+            aria-selected={currentFile === filename}
+        >
             {filename}
-            <button className="close-tab-btn" onClick={(e) => {
+            <button
+                className="close-tab-btn"
+                onClick={(e) => {
                 e.stopPropagation();
                 closeTab(filename);
-            }}>X
+                }}
+                aria-label={`Close ${filename} tab`}
+            >
+                X
             </button>
         </div>
     )), [openTabs, currentFile, closeTab, fileList, handleSaveFile]);
