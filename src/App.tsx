@@ -65,8 +65,36 @@ export default function App() {
     const [showSettings, setShowSettings] = useState<boolean>(false);
     const contentRef = useRef<string>('');
     const isDirtyRef = useRef<boolean>(false);
+    const [isLoading, setIsLoading] = useState<boolean>(false);
+    const [loadedFiles, setLoadedFiles] = useState<string[]>([]);
+    const [totalFiles, setTotalFiles] = useState<number>(0);
+    const [currentlyLoading, setCurrentlyLoading] = useState<string>('');
+    const [loadingDots, setLoadingDots] = useState<string>('');
 
+    useEffect(() => {
+        if (isLoading) {
+            const dotsInterval = setInterval(() => {
+                setLoadingDots(prev => {
+                    switch (prev) {
+                        case '':
+                            return '.';
+                        case '.':
+                            return '..';
+                        case '..':
+                            return '...';
+                        case '...':
+                            return '';
+                        default:
+                            return '';
+                    }
+                });
+            }, 500);
 
+            return () => clearInterval(dotsInterval);
+        } else {
+            setLoadingDots('');
+        }
+    }, [isLoading]);
 
     const isImageFile = (filename: string) => {
         return /\.(png|ico|icns|jpe?g|gif|webp|svg)$/i.test(filename);
@@ -101,33 +129,59 @@ export default function App() {
     }, [openTabs, currentFile]);
 
     const readDirectory = useCallback(async (dirHandle: FileSystemDirectoryHandle) => {
+        setIsLoading(true);
+        setLoadedFiles([]);
+
         const entries: Entry[] = [];
+        let fileCount = 0;
 
-        // @ts-ignore
-        for await (const entry of dirHandle.values()) {
-            if (entry.kind === 'file') {
-                const file = await entry.getFile();
-                const content = await file.text();
-                entries.push({name: entry.name, handle: entry, content});
-            } else if (entry.kind === 'directory') {
-                entries.push({name: entry.name, handle: entry, kind: 'directory'});
+        try {
+            // @ts-ignore
+            for await (const entry of dirHandle.values()) {
+                if (entry.kind === 'file') {
+                    fileCount++;
+                }
             }
+
+            setTotalFiles(fileCount);
+
+            // @ts-ignore
+            for await (const entry of dirHandle.values()) {
+                if (entry.kind === 'file') {
+                    setCurrentlyLoading(entry.name);
+                    const file = await entry.getFile();
+                    const content = await file.text();
+                    entries.push({name: entry.name, handle: entry, content});
+                    setLoadedFiles(prev => [...prev, entry.name]);
+                } else if (entry.kind === 'directory') {
+                    entries.push({name: entry.name, handle: entry, kind: 'directory'});
+                }
+            }
+
+            entries.sort((a, b) => {
+                if ('kind' in a && a.kind === 'directory') return -1;
+                if ('kind' in b && b.kind === 'directory') return 1;
+                return a.name.localeCompare(b.name);
+            });
+
+            setFileList(entries);
+            setCurrentDirHandle(dirHandle);
+            setHasOpened(true);
+        } catch (error) {
+            console.error("Error reading directory:", error);
+        } finally {
+            setTimeout(() => {
+                setIsLoading(false);
+                setLoadedFiles([]);
+                setCurrentlyLoading('');
+            }, 500);
         }
-
-        entries.sort((a, b) => {
-            if ('kind' in a && a.kind === 'directory') return -1;
-            if ('kind' in b && b.kind === 'directory') return 1;
-            return a.name.localeCompare(b.name);
-        });
-
-        setFileList(entries);
-        setCurrentDirHandle(dirHandle);
-        setHasOpened(true);
     }, []);
 
     const handleOpenFolder = useCallback(async () => {
         try {
             if ('showDirectoryPicker' in window) {
+                setIsLoading(true);
                 const dirHandle = await (window as any).showDirectoryPicker();
                 setDirStack([]);
                 await readDirectory(dirHandle);
@@ -139,15 +193,24 @@ export default function App() {
                 input.multiple = true;
 
                 input.onchange = async (e) => {
+                    setIsLoading(true);
+                    setLoadedFiles([]);
+
                     const files = Array.from((e.target as HTMLInputElement).files || []);
-                    if (files.length === 0) return;
+                    if (files.length === 0) {
+                        setIsLoading(false);
+                        return;
+                    }
 
                     const entries: Entry[] = [];
                     const dirName = files[0].webkitRelativePath.split('/')[0];
+                    setTotalFiles(files.length - 1);
 
+                    try {
                     for (const file of files) {
                         if (file.name === dirName) continue;
 
+                        setCurrentlyLoading(file.name);
                         const content = await file.text();
                         const virtualHandle = {
                             getFile: async () => file,
@@ -161,6 +224,8 @@ export default function App() {
                             handle: virtualHandle,
                             content
                         });
+
+                        setLoadedFiles(prev => [...prev, file.name]);
                     }
 
                     entries.sort((a, b) => {
@@ -179,6 +244,15 @@ export default function App() {
                     } as unknown as FileSystemDirectoryHandle;
 
                     setCurrentDirHandle(virtualDirHandle);
+                    } catch (error) {
+                        console.error("Error processing files:", error);
+                    } finally {
+                        setTimeout(() => {
+                            setIsLoading(false);
+                            setLoadedFiles([]);
+                            setCurrentlyLoading('');
+                        }, 500);
+                    }
                 };
 
                 input.click();
@@ -186,10 +260,13 @@ export default function App() {
         } catch (err) {
             console.error("Folder selection cancelled or unsupported", err);
             alert("Your browser may not fully support folder selection. For the best experience, please use Chrome or Edge.");
+            setIsLoading(false);
         }
     }, [readDirectory]);
 
     const handleFileClick = useCallback(async (entry: Entry) => {
+        if (isLoading) return;
+
         if (isDirtyRef.current && currentFile) {
             const confirmSave = window.confirm("You have unsaved changes. Do you want to save them before opening another file?");
             if (confirmSave) {
@@ -221,20 +298,22 @@ export default function App() {
                 setMediaURL(null);
             }
         }
-    }, [openTab, readDirectory, currentDirHandle, currentFile]);
+    }, [openTab, readDirectory, currentDirHandle, currentFile, isLoading]);
 
     const goBackDirectory = useCallback(() => {
+        if (isLoading) return;
+
         const newStack = [...dirStack];
         const parent = newStack.pop();
         if (parent) {
             setDirStack(newStack);
             readDirectory(parent);
         }
-    }, [dirStack, readDirectory]);
+    }, [dirStack, readDirectory, isLoading]);
 
     const handleSaveFile = useCallback(async () => {
-        if (!currentFile) {
-            console.error("No file to save");
+        if (!currentFile || isLoading) {
+            console.error("No file to save or loading is in progress");
             return;
         }
 
@@ -264,9 +343,11 @@ export default function App() {
         } catch (err) {
             console.error("Saving file failed", err);
         }
-    }, [currentFile, fileList]);
+    }, [currentFile, fileList, isLoading]);
 
     const handleKeyDown = useCallback((e: KeyboardEvent) => {
+        if (isLoading) return;
+
         if (e.ctrlKey && e.key === 's' || e.metaKey && e.key === 's') {
             e.preventDefault();
             handleSaveFile();
@@ -275,7 +356,7 @@ export default function App() {
             e.preventDefault();
             closeTab(currentFile);
         }
-    }, [handleSaveFile, closeTab]);
+    }, [handleSaveFile, closeTab, isLoading]);
 
     useEffect(() => {
         window.addEventListener('keydown', handleKeyDown);
@@ -295,6 +376,8 @@ export default function App() {
     }, [currentFile, fileList]);
 
     const handleEditorChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
+        if (isLoading) return;
+
         const newContent = e.target.value;
         contentRef.current = newContent;
         isDirtyRef.current = true;
@@ -302,7 +385,7 @@ export default function App() {
         requestAnimationFrame(() => {
             setFileContent(newContent);
         });
-    }, []);
+    }, [isLoading]);
 
     const fileItems = useMemo(() => {
         const items = [];
@@ -433,13 +516,13 @@ export default function App() {
 
     return (
         <div className="editor-container">
-            <div className="sidebar">
+            <div className={`sidebar ${isLoading ? 'disabled-ui' : ''}`}>
                 <button className="open-folder-btn" onClick={handleOpenFolder}>📁 Open Folder</button>
                 <button className="open-folder-btn" onClick={handleOpenSettings}>⚙️ Settings</button>
                 <div className="file-list">{fileItems}</div>
             </div>
 
-            <div className="main-editor">
+            <div className={`main-editor ${isLoading ? 'disabled-ui' : ''}`}>
                 <div className="tabs">{tabItems}</div>
                 <div className="editor">
                     {!mediaURL && (
@@ -484,6 +567,24 @@ export default function App() {
                     )}
                 </div>
             </div>
+
+            {isLoading && (
+                <div className="loading-overlay">
+                    <div className="spinner"></div>
+                    <div>Loading folder contents{loadingDots}</div>
+                    <div className="loading-progress">
+                        {loadedFiles.length} of {totalFiles} files loaded
+                    </div>
+                    {currentlyLoading && (
+                        <div>Currently loading: {currentlyLoading}</div>
+                    )}
+                    <div className="loading-files-list">
+                        {loadedFiles.slice(-10).map((file, index) => (
+                            <div key={index}>Loaded: {file}</div>
+                        ))}
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
