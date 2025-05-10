@@ -191,12 +191,12 @@ export default function Settings({setShowSettings}: Readonly<SettingsProps>) {
                 </div>
             </div>
 
-            {/* Excludes Settings */}
             <div className="settings-section">
                 <h3>File Excludes</h3>
                 <div className="settings-option">
-                    <label>Exclude Executables</label>
+                    <label htmlFor="excludeExecutables">Exclude Executables</label>
                     <button
+                        id="excludeExecutables"
                         className="toggle-btn"
                         onClick={() => toggleExclude('executables')}
                         style={{
@@ -212,8 +212,9 @@ export default function Settings({setShowSettings}: Readonly<SettingsProps>) {
                     </button>
                 </div>
                 <div className="settings-option">
-                    <label>Exclude Archives</label>
+                    <label htmlFor="excludeArchives">Exclude Archives</label>
                     <button
+                        id="excludeArchives"
                         className="toggle-btn"
                         onClick={() => toggleExclude('archives')}
                         style={{
@@ -229,8 +230,9 @@ export default function Settings({setShowSettings}: Readonly<SettingsProps>) {
                     </button>
                 </div>
                 <div className="settings-option">
-                    <label>Exclude Hidden Files</label>
+                    <label htmlFor="excludeHidden">Exclude Hidden Files</label>
                     <button
+                        id="excludeHidden"
                         className="toggle-btn"
                         onClick={() => toggleExclude('hidden')}
                         style={{
@@ -246,8 +248,9 @@ export default function Settings({setShowSettings}: Readonly<SettingsProps>) {
                     </button>
                 </div>
                 <div className="settings-option">
-                    <label>Exclude node_modules</label>
+                    <label htmlFor="excludeNodeModules">Exclude node_modules</label>
                     <button
+                        id="excludeNodeModules"
                         className="toggle-btn"
                         onClick={() => toggleExclude('nodeModules')}
                         style={{
@@ -263,8 +266,9 @@ export default function Settings({setShowSettings}: Readonly<SettingsProps>) {
                     </button>
                 </div>
                 <div className="settings-option">
-                    <label>Exclude .git Folders</label>
+                    <label htmlFor="excludeGitFolders">Exclude .git Folders</label>
                     <button
+                        id="excludeGitFolders"
                         className="toggle-btn"
                         onClick={() => toggleExclude('gitFolders')}
                         style={{
