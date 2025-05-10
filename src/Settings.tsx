@@ -6,7 +6,7 @@ interface SettingsProps {
     version: string;
 }
 
-export default function Settings({setShowSettings, version}: SettingsProps) {
+export default function Settings({setShowSettings, version}: Readonly<SettingsProps>) {
     const handleCloseSettings = useCallback(() => {
         setShowSettings(false);
     }, [setShowSettings]);
