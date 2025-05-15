@@ -7,11 +7,11 @@
 
 ## Star History
 
-<a href="https://www.star-history.com/#xdpxi/xds-code&Date">
+<a href="https://www.star-history.com/#xdpxi/xds-code&Timeline">
  <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=xdpxi/xds-code&type=Date&theme=dark" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=xdpxi/xds-code&type=Date" />
-   <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=xdpxi/xds-code&type=Date" />
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=xdpxi/xds-code&type=Timeline&theme=dark" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=xdpxi/xds-code&type=Timeline" />
+   <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=xdpxi/xds-code&type=Timeline" />
  </picture>
 </a>
 
