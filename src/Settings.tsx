@@ -27,7 +27,6 @@ export default function Settings({setShowSettings}: Readonly<SettingsProps>) {
     const browser = detect();
 
     const [sha, setSha] = useState<string | null>(null);
-    const [theme, setTheme] = useState<'dark' | 'light'>('dark');
     const [excludes, setExcludes] = useState<ExcludeSettings>({
         executables: true,
         archives: false,
@@ -38,12 +37,6 @@ export default function Settings({setShowSettings}: Readonly<SettingsProps>) {
 
     useEffect(() => {
         const loadSettings = () => {
-            const savedTheme = getCookie('theme');
-            if (savedTheme === 'light' || savedTheme === 'dark') {
-                setTheme(savedTheme);
-                applyTheme(savedTheme);
-            }
-
             const savedExcludes = getCookie('excludes');
             if (savedExcludes) {
                 try {
@@ -57,15 +50,9 @@ export default function Settings({setShowSettings}: Readonly<SettingsProps>) {
         loadSettings();
     }, []);
 
-    const applyTheme = (newTheme: 'dark' | 'light') => {
-        document.documentElement.setAttribute('data-theme', newTheme);
-    };
-
-    const saveSettings = (newTheme?: 'dark' | 'light', newExcludes?: ExcludeSettings) => {
-        const themeToSave = newTheme ?? theme;
+    const saveSettings = (newExcludes?: ExcludeSettings) => {
         const excludesToSave = newExcludes || excludes;
 
-        setCookie('theme', themeToSave, 365);
         setCookie('excludes', JSON.stringify(excludesToSave), 365);
     };
 
@@ -86,20 +73,13 @@ export default function Settings({setShowSettings}: Readonly<SettingsProps>) {
         return null;
     };
 
-    const toggleTheme = () => {
-        const newTheme = theme === 'dark' ? 'light' : 'dark';
-        setTheme(newTheme);
-        applyTheme(newTheme);
-        saveSettings(newTheme);
-    };
-
     const toggleExclude = (key: keyof ExcludeSettings) => {
         const newExcludes = {
             ...excludes,
             [key]: !excludes[key]
         };
         setExcludes(newExcludes);
-        saveSettings(undefined, newExcludes);
+        saveSettings(undefined);
     };
 
     useEffect(() => {
@@ -170,28 +150,7 @@ export default function Settings({setShowSettings}: Readonly<SettingsProps>) {
         <div className="starter-screen">
             <h2 className="starter-title">Settings</h2>
 
-            <div className="settings-section">
-                <h3>Appearance</h3>
-                <div className="settings-option">
-                    <label>Theme: {theme === 'dark' ? 'Dark' : 'Light'}</label>
-                    <button
-                        className="toggle-btn"
-                        onClick={toggleTheme}
-                        style={{
-                            backgroundColor: theme === 'light' ? '#4CAF50' : '#555',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '4px',
-                            padding: '5px 10px',
-                            cursor: 'pointer'
-                        }}
-                    >
-                        {theme === 'dark' ? 'Switch to Light' : 'Switch to Dark'}
-                    </button>
-                </div>
-            </div>
-
-            <div className="settings-section">
+            <div className="settings-info">
                 <h3>File Excludes</h3>
                 <div className="settings-option">
                     <label htmlFor="excludeExecutables">Exclude Executables</label>

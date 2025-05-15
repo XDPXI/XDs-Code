@@ -6,25 +6,6 @@
     <title>XD's Code</title>
     <link href="/favicon.ico" rel="icon">
     <script crossorigin="anonymous" src="https://kit.fontawesome.com/7ea2a77467.js"></script>
-    <script>
-        (function() {
-            const getCookie = (name) => {
-                const nameEQ = name + "=";
-                const ca = document.cookie.split(';');
-                for (const element of ca) {
-                    let c = element;
-                    while (c.charAt(0) === ' ') c = c.substring(1, c.length);
-                    if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length);
-                }
-                return null;
-            };
-
-            const savedTheme = getCookie('theme');
-            if (savedTheme) {
-                document.documentElement.setAttribute('data-theme', savedTheme);
-            }
-        })();
-    </script>
 </head>
 
 <body>
