@@ -14,7 +14,10 @@
       {
         "title": "XD's Code",
         "width": 1000,
-        "height": 600
+        "height": 600,
+        "minWidth": 800,
+        "minHeight": 450,
+        "resizable": true
       }
     ],
     "security": {
