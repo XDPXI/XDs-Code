@@ -29,7 +29,10 @@ const getFileIcon = (filename: string): string => {
         case 'css':
             return 'fa-brands fa-css3-alt';
         case 'md':
+        case 'txt':
             return 'fa-solid fa-file-lines';
+        case 'license':
+            return 'fa-solid fa-scale-balanced';
         case 'png':
         case 'jpg':
         case 'jpeg':
@@ -43,9 +46,11 @@ const getFileIcon = (filename: string): string => {
         case 'wav':
             return 'fa-solid fa-music';
         case 'mp4':
+        case 'mov':
         case 'webm':
             return 'fa-solid fa-film';
         case 'zip':
+        case '7z':
         case 'rar':
             return 'fa-solid fa-file-zipper';
         default:
