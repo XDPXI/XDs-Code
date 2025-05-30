@@ -28,6 +28,20 @@ const getFileIcon = (filename: string): string => {
             return 'fa-brands fa-html5';
         case 'css':
             return 'fa-brands fa-css3-alt';
+        case 'java':
+            return 'fa-brands fa-java';
+        case 'py':
+            return 'fa-brands fa-python';
+        case 'gitignore':
+        case 'gitattributes':
+        case 'git':
+            return 'fa-brands fa-git-alt';
+        case 'php':
+            return 'fa-brands fa-php';
+        case 'go':
+            return 'fa-brands fa-golang';
+        case 'erl':
+            return 'fa-brands fa-erlang';
         case 'md':
         case 'txt':
             return 'fa-solid fa-file-lines';
