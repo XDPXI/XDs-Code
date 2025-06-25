@@ -19,7 +19,7 @@ jobs:
           node-version: 22
 
       - name: Install bun
-        run: powershell -c "irm bun.sh/install.ps1 | iex"
+        uses: oven-sh/setup-bun@v1
 
       - name: Install dependencies
         run: bun install
@@ -38,7 +38,7 @@ jobs:
           node-version: 22
 
       - name: Install bun
-        run: curl -fsSL https://bun.sh/install | bash
+        uses: oven-sh/setup-bun@v1
 
       - name: Install dependencies
         run: bun install
