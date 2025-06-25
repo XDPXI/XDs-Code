@@ -1,8 +1,9 @@
 @echo off
 
 echo == Updating JavaScript dependencies (pnpm)... ==
-start /wait "" cmd /c "@echo off & pnpm update"
-start /wait "" cmd /c "@echo off & pnpm install"
+start /wait "" cmd /c "@echo off & bun install"
+start /wait "" cmd /c "@echo off & bun update"
+start /wait "" cmd /c "@echo off & bun install"
 
 echo == Updating Rust dependencies (Cargo)... ==
 cd src-tauri || exit /b
