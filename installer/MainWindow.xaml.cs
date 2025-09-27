@@ -17,7 +17,6 @@ namespace Installer
 {
     public partial class MainWindow
     {
-        // Constants
         private const string AppExeName = "xds-code.exe";
         private const string AppDisplayName = "XD's Code";
         private const string AppVersion = "0.5.0";
@@ -29,7 +28,6 @@ namespace Installer
         private readonly string _desktop = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
         private readonly string _extractPath;
 
-        // Paths
         private readonly string _localAppData =
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
 
@@ -37,7 +35,6 @@ namespace Installer
         private bool _didUninstall;
         private bool _hasInstalled;
 
-        // State
         private bool _isDownloading;
 
         public MainWindow()
