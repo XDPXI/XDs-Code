@@ -730,7 +730,7 @@ namespace Installer
                         {
                             FileName = appPath,
                             UseShellExecute = true,
-                            WorkingDirectory = Path.GetDirectoryName(appPath)
+                            WorkingDirectory = appPath
                         });
                     else
                         MessageBox.Show(
