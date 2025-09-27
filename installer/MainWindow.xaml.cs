@@ -625,7 +625,7 @@ namespace Installer
             DoneButton.Visibility = Visibility.Visible;
 
             if (!wasUninstall)
-                DoneButton.Content = "Launch Application";
+                DoneButton.Content = "Launch";
             else
                 DoneButton.Content = "Close";
         }
