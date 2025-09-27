@@ -1,5 +1,5 @@
 import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
-import './App.css';
+import '../styles/globals.css';
 import Settings from "./Settings.tsx";
 import {getVersion} from "@tauri-apps/api/app";
 import Starter from "./Starter.tsx";
