@@ -143,6 +143,12 @@ namespace Installer
 
                 using (var key = Registry.CurrentUser.CreateSubKey(RegistryUninstallKey))
                 {
+                    if (key == null)
+                    {
+                        Log("Failed to create or open registry key for uninstallation.");
+                        return;
+                    }
+                    
                     key.SetValue("DisplayName", AppDisplayName);
                     key.SetValue("DisplayVersion", AppVersion);
                     key.SetValue("Publisher", "XD");
