@@ -16,7 +16,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v5
         with:
-          node-version: 22
+          node-version: 24
 
       - name: Install bun
         uses: oven-sh/setup-bun@v2
@@ -40,15 +40,15 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
-  build-macos:
-    runs-on: macos-latest
+  build-macos-intel:
+    runs-on: macos-15-intel
     steps:
       - uses: actions/checkout@v5
 
       - name: Set up Node.js
         uses: actions/setup-node@v5
         with:
-          node-version: 22
+          node-version: 24
 
       - name: Install bun
         uses: oven-sh/setup-bun@v2
@@ -58,18 +58,55 @@ jobs:
       - name: Install dependencies
         run: bun install
 
-      - name: Build Tauri app (macOS)
-        run: bun tauri build
+      - name: Add Rust target for Intel macOS
+        run: rustup target add x86_64-apple-darwin
 
-      - name: Upload macOS artifacts
+      - name: Build Tauri app for macOS Intel (x86_64)
+        run: |
+          echo "🏗️ Building for macOS Intel (x86_64)..."
+          bun tauri build -- --target x86_64-apple-darwin
+
+      - name: Upload macOS Intel artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: macos-app
+          name: macos-intel-app
           path: |
-            src-tauri/target/release/bundle/dmg/*.dmg
-            src-tauri/target/release/bundle/macos/*.app
             src-tauri/target/x86_64-apple-darwin/release/bundle/dmg/*.dmg
             src-tauri/target/x86_64-apple-darwin/release/bundle/macos/*.app
+          if-no-files-found: error
+          retention-days: 30
+
+  build-macos-arm:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 24
+
+      - name: Install bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Add Rust target for Apple Silicon macOS
+        run: rustup target add aarch64-apple-darwin
+
+      - name: Build Tauri app for macOS Apple Silicon (arm64)
+        run: |
+          echo "🏗️ Building for macOS Apple Silicon (arm64)..."
+          bun tauri build -- --target aarch64-apple-darwin
+
+      - name: Upload macOS Apple Silicon artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-arm-app
+          path: |
             src-tauri/target/aarch64-apple-darwin/release/bundle/dmg/*.dmg
             src-tauri/target/aarch64-apple-darwin/release/bundle/macos/*.app
           if-no-files-found: error
