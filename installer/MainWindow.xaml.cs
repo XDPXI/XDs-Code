@@ -65,7 +65,7 @@ namespace Installer
             @"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\" + AppDisplayName;
 
         private const string DownloadUrl =
-            "https://raw.githubusercontent.com/XDPXI/XDs-Code/main/installer/releases/0.5.0.zip";
+            "https://raw.githubusercontent.com/XDPXI/XDs-Code/main/installer/releases/0.6.0.zip";
 
         #endregion
 
