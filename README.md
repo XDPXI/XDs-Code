@@ -34,13 +34,13 @@
 3. Install dependencies:
 
    ```bash
-   pnpm install
+   bun install
    ```
 
 4. Build the project:
 
    ```bash
-   pnpm run build
+   bun run build
    ```
 
 ---
