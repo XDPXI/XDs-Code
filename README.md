@@ -45,7 +45,7 @@
    bun run build:app
    ```
 
-### Application
+### Website
 
 1. Clone the repository:
 
