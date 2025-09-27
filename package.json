@@ -4,8 +4,10 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "bun tauri dev",
-    "build": "bun tauri build"
+    "dev:app": "bun tauri dev",
+    "build:app": "bun tauri build",
+    "dev:site": "bun vite dev",
+    "build:site": "bun vite build"
   },
   "dependencies": {
     "@tauri-apps/api": "^2.8.0",
