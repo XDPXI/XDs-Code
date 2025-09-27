@@ -684,24 +684,6 @@ namespace Installer
             Close();
         }
 
-        private void CancelButton2_Click(object sender, RoutedEventArgs e)
-        {
-            if (_isOperationInProgress)
-            {
-                var result = MessageBox.Show(
-                    "Are you sure you want to cancel the operation?",
-                    "Cancel Operation",
-                    MessageBoxButton.YesNo,
-                    MessageBoxImage.Question);
-
-                if (result == MessageBoxResult.Yes)
-                {
-                    _cancellationTokenSource.Cancel();
-                    SetStatus("Cancelling operation...");
-                }
-            }
-        }
-
         private void UninstallButton_Click(object sender, RoutedEventArgs e)
         {
             Manager(2);
