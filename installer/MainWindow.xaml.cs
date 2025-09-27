@@ -58,7 +58,7 @@ namespace Installer
 
         private const string AppExeName = "xds-code.exe";
         private const string AppDisplayName = "XD's Code";
-        private const string AppVersion = "0.5.0";
+        private const string AppVersion = "0.6.0";
         private const string ShortcutName = AppDisplayName + ".lnk";
 
         private const string RegistryUninstallKey =
@@ -151,7 +151,7 @@ namespace Installer
                     
                     key.SetValue("DisplayName", AppDisplayName);
                     key.SetValue("DisplayVersion", AppVersion);
-                    key.SetValue("Publisher", "XD");
+                    key.SetValue("Publisher", "XDPXI");
                     key.SetValue("InstallLocation", _extractPath);
                     key.SetValue("UninstallString", $"\"{uninstallPath}\" /uninstall");
                     key.SetValue("DisplayIcon", appPath);
