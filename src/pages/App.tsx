@@ -709,6 +709,12 @@ export default function App() {
             key={filename}
             className={`tab-item ${currentFile === filename ? 'active' : ''}`}
             onClick={() => handleTabClick(filename)}
+            onMouseDown={(e) => {
+                if (e.button === 1) {
+                    e.preventDefault();
+                    closeTab(filename);
+                }
+            }}
             type="button"
             role="tab"
             aria-selected={currentFile === filename}
