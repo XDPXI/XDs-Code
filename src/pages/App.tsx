@@ -1,9 +1,10 @@
-import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import '../styles/globals.css';
 import '../styles/fontawesome.css';
 import Settings from "./Settings.tsx";
 import {getVersion} from "@tauri-apps/api/app";
 import Starter from "./Starter.tsx";
+import Editor from "@monaco-editor/react";
 
 interface FileEntry {
     name: string;
@@ -18,6 +19,52 @@ interface FolderEntry {
 }
 
 type Entry = FileEntry | FolderEntry;
+
+const getMonacoLanguage = (filename: string): string => {
+    if (!filename) return "plaintext";
+    const ext = filename.split(".").pop()?.toLowerCase();
+    switch (ext) {
+        case "js":
+        case "mjs":
+        case "cjs":
+            return "javascript";
+        case "ts":
+        case "tsx":
+            return "typescript";
+        case "jsx":
+            return "javascript";
+        case "html":
+        case "htm":
+            return "html";
+        case "css":
+        case "scss":
+        case "less":
+            return "css";
+        case "json":
+            return "json";
+        case "md":
+        case "markdown":
+            return "markdown";
+        case "py":
+            return "python";
+        case "c":
+        case "cpp":
+        case "h":
+        case "hpp":
+            return "cpp";
+        case "cs":
+            return "csharp";
+        case "java":
+            return "java";
+        case "xml":
+            return "xml";
+        case "yaml":
+        case "yml":
+            return "yaml";
+        default:
+            return "plaintext";
+    }
+};
 
 const getFileIcon = (filename: string): string => {
     const ext = filename.split('.').pop()?.toLowerCase();
@@ -357,7 +404,6 @@ export default function App() {
     const [fileContent, setFileContent] = useState<string>('');
     const [currentDirHandle, setCurrentDirHandle] = useState<FileSystemDirectoryHandle | null>(null);
     const [dirStack, setDirStack] = useState<FileSystemDirectoryHandle[]>([]);
-    const editorRef = useRef<HTMLTextAreaElement>(null);
     const [mediaURL, setMediaURL] = useState<string | null>(null);
     const [showSettings, setShowSettings] = useState<boolean>(false);
     const [version, setVersion] = useState("0.0.0")
@@ -604,16 +650,6 @@ export default function App() {
         }
     }, [currentFile, fileList]);
 
-    const handleEditorChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
-        const newContent = e.target.value;
-        contentRef.current = newContent;
-        isDirtyRef.current = true;
-
-        requestAnimationFrame(() => {
-            setFileContent(newContent);
-        });
-    }, []);
-
     const fileItems = useMemo(() => {
         const items = [];
 
@@ -758,14 +794,6 @@ export default function App() {
             <div className="main-editor">
                 <div className="tabs">{tabItems}</div>
                 <div className="editor">
-                    {!mediaURL && (
-                        <div id="lineNumbers" className="line-numbers">
-                            {Array.from({length: fileContent.split('\n').length}, (_, i) => (
-                                <div key={i} className="line-number">{i + 1}</div>
-                            ))}
-                        </div>
-                    )}
-
                     {mediaURL && isImageFile(currentFile ?? '') && (
                         <div className="media-preview">
                             <img src={mediaURL} alt={currentFile ?? ''} style={{maxWidth: '100%', maxHeight: '100%'}}/>
@@ -783,18 +811,25 @@ export default function App() {
                     )}
 
                     {!mediaURL && (
-                        <textarea
-                            ref={editorRef}
-                            className="editor-textarea"
-                            spellCheck={false}
-                            autoFocus
+                        <Editor
+                            height="100%"
+                            language={getMonacoLanguage(currentFile || "")}
                             value={fileContent}
-                            onChange={handleEditorChange}
-                            id="fileContents"
-                            onScroll={(e) => {
-                                const gutter = document.querySelector('.line-numbers');
-                                if (gutter)
-                                    gutter.scrollTop = (e.target as HTMLElement).scrollTop;
+                            onChange={(value) => {
+                                contentRef.current = value || "";
+                                setFileContent(value || "");
+                                isDirtyRef.current = true;
+                            }}
+                            theme="vs-dark"
+                            options={{
+                                fontFamily: "JetBrains Mono, Fira Code, monospace",
+                                fontSize: 14,
+                                minimap: { enabled: false },
+                                wordWrap: "on",
+                                scrollBeyondLastLine: false,
+                                lineNumbers: "on",
+                                renderLineHighlight: "all",
+                                automaticLayout: true,
                             }}
                         />
                     )}

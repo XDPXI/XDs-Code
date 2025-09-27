@@ -121,35 +121,9 @@
 }
 
 .editor {
+    flex: 1;
     display: flex;
-    flex-grow: 1;
-    height: 100%;
-    background-color: #1e1e1e;
-    font-family: monospace;
-    font-size: 16px;
-    overflow: hidden;
-}
-
-.line-numbers {
-    overflow: hidden;
-    color: #777;
-    text-align: right;
-    padding: 10px 6px 10px 0;
-    user-select: none;
-    border-right: 1px solid #3a3a3a;
-    border-top: 1px solid #3a3a3a;
-    min-width: 40px;
-    height: 100%;
-    box-sizing: border-box;
-    transition: background-color 0.3s ease,
-    border-color 0.3s ease;
-}
-
-.line-number {
-    height: 1.5em;
-    line-height: 1.5em;
-    padding-right: 8px;
-    transition: color 0.3s ease;
+    min-height: 0;
 }
 
 .editor-textarea {
@@ -211,8 +185,8 @@
 .main-editor {
     display: flex;
     flex-direction: column;
-    flex-grow: 1;
-    height: 100%;
+    flex: 1;
+    overflow: hidden;
 }
 
 .tabs {
