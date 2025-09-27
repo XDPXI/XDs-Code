@@ -11,11 +11,11 @@
         WindowStyle="None"
         AllowsTransparency="True"
         Background="Transparent">
-    <Border x:Name="WinBorder" Background="#FF1E1E2E" CornerRadius="10" Padding="10" BorderThickness="1"
-            BorderBrush="#FF4D89EB">
+    <Border x:Name="WinBorder" Background="#1e1e1e" CornerRadius="10" Padding="10" BorderThickness="1"
+            BorderBrush="#ff6b6b">
         <Grid>
             <!-- Title Bar -->
-            <Border x:Name="TitleBorder" Background="#FF4D89EB" BorderThickness="1" BorderBrush="#FF4D89EB"
+            <Border x:Name="TitleBorder" Background="#ff6b6b" BorderThickness="1" BorderBrush="#ff6b6b"
                     CornerRadius="7" Margin="0,0,0,143">
                 <Grid MouseLeftButtonDown="Grid_MouseLeftButtonDown" Height="30" VerticalAlignment="Top">
                     <TextBlock x:Name="TitleText" Text="Installer Setup" Foreground="White" VerticalAlignment="Center"
@@ -29,28 +29,28 @@
                            FontWeight="Medium" />
 
                 <ProgressBar Name="ProgressBar" Height="20" Margin="0,10,0,0" Maximum="100" IsIndeterminate="false"
-                             Foreground="#FF4D89EB" Background="#FF333333" />
+                             Foreground="#ff6b6b" Background="#FF333333" />
 
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,20,0,0">
                     <Button Name="CancelButton2" Content="Cancel" Width="100" Height="35" Margin="0,0,10,0"
-                            Background="#FF333333" Foreground="#FFB3B3B3" BorderBrush="#FF4D89EB"
+                            Background="#FF333333" Foreground="#FFB3B3B3" BorderBrush="#ff6b6b"
                             Click="CancelButton_Click" />
                     <Button Name="UninstallButton" Content="Uninstall" Width="100" Height="35" Margin="0,0,10,0"
-                            Background="#FF333333" Foreground="#FFB3B3B3" BorderBrush="#FF4D89EB"
+                            Background="#FF333333" Foreground="#FFB3B3B3" BorderBrush="#ff6b6b"
                             Click="UninstallButton_Click" />
-                    <Button x:Name="InstallButton" Content="Install" Width="100" Height="35" Background="#FF4D89EB"
-                            Foreground="White" BorderBrush="#FF4D89EB"
+                    <Button x:Name="InstallButton" Content="Install" Width="100" Height="35" Background="#ff6b6b"
+                            Foreground="White" BorderBrush="#ff6b6b"
                             Click="NextButton_Click" />
                     <Button Visibility="Collapsed" Name="CancelButton" Content="Cancel" Width="100" Height="35"
-                            Margin="0,0,10,0" Background="#FF333333" Foreground="#FFB3B3B3" BorderBrush="#FF4D89EB"
+                            Margin="0,0,10,0" Background="#FF333333" Foreground="#FFB3B3B3" BorderBrush="#ff6b6b"
                             Click="CancelButton_Click" />
                     <Button Visibility="Collapsed" x:Name="NextButton" Content="Next" Width="100" Height="35"
-                            Background="#FF4D89EB" Foreground="White" BorderBrush="#FF4D89EB"
+                            Background="#ff6b6b" Foreground="White" BorderBrush="#ff6b6b"
                             Click="NextButton_Click" />
                     <Button Visibility="Collapsed" x:Name="NextButtonDisabled" Content="Next" Width="100" Height="35"
                             Background="#FF202020" Foreground="#FF676767" BorderBrush="#FF505050" />
                     <Button Visibility="Collapsed" x:Name="DoneButton" Content="Done" Width="100" Height="35"
-                            Background="#FF4D89EB" Foreground="White" BorderBrush="#FF4D89EB"
+                            Background="#ff6b6b" Foreground="White" BorderBrush="#ff6b6b"
                             Click="DoneButton_Click" />
                 </StackPanel>
             </StackPanel>
