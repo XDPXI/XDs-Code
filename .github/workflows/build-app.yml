@@ -100,13 +100,15 @@ jobs:
       - name: Build Tauri app for macOS Apple Silicon (arm64)
         run: |
           echo "🏗️ Building for macOS Apple Silicon (arm64)..."
-          bun tauri build -- --target aarch64-apple-darwin
+          bun tauri build
 
       - name: Upload macOS Apple Silicon artifacts
         uses: actions/upload-artifact@v4
         with:
           name: macos-arm-app
           path: |
+            src-tauri/target/release/bundle/dmg/*.dmg
+            src-tauri/target/release/bundle/macos/*.app
             src-tauri/target/aarch64-apple-darwin/release/bundle/dmg/*.dmg
             src-tauri/target/aarch64-apple-darwin/release/bundle/macos/*.app
           if-no-files-found: error
