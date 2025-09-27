@@ -1,6 +1,6 @@
 [package]
 name = "xds-code"
-version = "0.5.0"
+version = "0.6.0"
 description = " XD's Code is a code editor that is insipred by VSC."
 authors = ["XDPXI"]
 edition = "2021"
