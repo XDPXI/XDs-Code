@@ -98,7 +98,7 @@ namespace Installer
 
                 if (isInstalled)
                 {
-                    SetStatus(AppDisplayName + "properties.");
+                    SetStatus(AppDisplayName + " properties.");
                     InstallButton.Content = "Reinstall";
                     UninstallButton.Visibility = Visibility.Visible;
                 }
