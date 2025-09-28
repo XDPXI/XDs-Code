@@ -425,10 +425,28 @@ export default function App() {
     }, []);
 
     const isImageFile = (filename: string) => {
-        return /\.(png|ico|icns|jpe?g|gif|webp|svg)$/i.test(filename);
+        return /\.(png|ico|jpe?g|gif|webp|svg)$/i.test(filename);
     };
     const isVideoFile = (filename: string) => {
         return /\.(mp4|webm|ogg|mov)$/i.test(filename);
+    };
+
+    const isBinaryContent = (content: string | ArrayBuffer) => {
+        const sampleSize = 512;
+        let bytes: Uint8Array;
+
+        if (typeof content === 'string') {
+            bytes = new TextEncoder().encode(content);
+        } else {
+            bytes = new Uint8Array(content.slice(0, sampleSize));
+        }
+
+        for (let i = 0; i < Math.min(bytes.length, sampleSize); i++) {
+            const byte = bytes[i];
+            if (byte === 0) return true;
+            if (byte < 7 || (byte > 13 && byte < 32)) return true;
+        }
+        return false;
     };
 
     const handleOpenSettings = useCallback(() => {
@@ -570,8 +588,18 @@ export default function App() {
                 setFileContent('');
                 contentRef.current = '';
             } else {
+                if (file.size > 1048576) {
+                    alert("File is too large to open (>1MB).");
+                    return;
+                }
+
                 // @ts-ignore
                 const content = entry.content;
+                if (isBinaryContent(content)) {
+                    alert("This file appears to be binary and cannot be opened.");
+                    return;
+                }
+
                 contentRef.current = content;
                 setFileContent(content);
                 setMediaURL(null);
@@ -733,7 +761,17 @@ export default function App() {
             setFileContent('');
             contentRef.current = '';
         } else {
+            if (file.size > 1048576) {
+                alert("File is too large to open (>1MB).");
+                return;
+            }
+
             const content = await file.text();
+            if (isBinaryContent(content)) {
+                alert("This file appears to be binary and cannot be opened.");
+                return;
+            }
+
             contentRef.current = content;
             setFileContent(content);
             setMediaURL(null);
