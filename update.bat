@@ -1,26 +1,33 @@
 @echo off
+setlocal
 
-echo == Updating JavaScript dependencies (pnpm)... ==
-start /wait "" cmd /c "@echo off & bun install"
-start /wait "" cmd /c "@echo off & bun update"
-start /wait "" cmd /c "@echo off & bun install"
+echo == Updating Bun Dependencies... ==
+bun install
+if errorlevel 1 echo [!] bun install failed
+bun update
+if errorlevel 1 echo [!] bun update failed
+bun install
+if errorlevel 1 echo [!] bun install failed
 
-echo == Updating Rust dependencies (Cargo)... ==
+echo == Updating Rust Dependencies... ==
 cd src-tauri || exit /b
-start /wait "" cmd /c "@echo off & cargo update"
+cargo update
+if errorlevel 1 echo [!] cargo update failed
 cd ..
 
-echo == Checking for .NET dependency updates... ==
+echo == Updating .NET Dependencies... ==
 cd installer || exit /b
 
 where dotnet-outdated >nul 2>&1
 if %errorlevel% neq 0 (
     echo Installing dotnet-outdated-tool...
-    start /wait "" cmd /c "@echo off & dotnet tool install --global dotnet-outdated-tool"
+    dotnet tool install --global dotnet-outdated-tool
 )
 
-start /wait "" cmd /c "@echo off & dotnet outdated --upgrade"
+dotnet outdated --upgrade
+if errorlevel 1 echo [!] dotnet outdated failed
 cd ..
 
 echo == All dependencies updated! ==
 pause
+endlocal
