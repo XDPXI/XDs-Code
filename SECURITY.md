@@ -11,9 +11,9 @@
 >
 > :heavy_multiplication_x: : Never Supported
 
-| Version | Application        | Website            | Installer (Win)    | Installer (Mac) |
-|---------|--------------------|--------------------|--------------------|-----------------|
-| 0.X.X   | :white_check_mark: | :white_check_mark: | :white_check_mark: | :construction:  |
+| Version | Windows            | MacOS              | Website            |
+|---------|--------------------|--------------------|--------------------|
+| 0.X.X   | :white_check_mark: | :white_check_mark: | :white_check_mark: |
 
 ## Reporting a Vulnerability
 
