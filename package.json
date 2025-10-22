@@ -10,7 +10,7 @@
     "build:site": "bun vite build"
   },
   "dependencies": {
-    "@tauri-apps/api": "^2.8.0",
+    "@tauri-apps/api": "^2.9.0",
     "@tauri-apps/plugin-opener": "^2.5.0"
   },
   "devDependencies": {
