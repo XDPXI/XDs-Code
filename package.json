@@ -15,7 +15,7 @@
   },
   "devDependencies": {
     "@monaco-editor/react": "^4.7.0",
-    "@tauri-apps/cli": "^2.9.3",
+    "@tauri-apps/cli": "^2.9.4",
     "@types/react": "^19.2.6",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^5.1.1",
