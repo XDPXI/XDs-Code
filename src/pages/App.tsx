@@ -971,7 +971,7 @@ export default function App() {
                             options={{
                                 fontFamily: "JetBrains Mono, Fira Code, monospace",
                                 fontSize: 14,
-                                minimap: { enabled: false },
+                                minimap: {enabled: false},
                                 wordWrap: "on",
                                 scrollBeyondLastLine: false,
                                 lineNumbers: "on",
