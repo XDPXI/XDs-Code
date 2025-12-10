@@ -18,6 +18,14 @@ interface FolderEntry {
     kind: 'directory';
 }
 
+interface VirtualDirectoryHandle {
+    name: string;
+    kind: 'directory';
+    _isVirtual: true;
+    _files: File[];
+    values: () => AsyncGenerator<any, void, unknown>;
+}
+
 type Entry = FileEntry | FolderEntry;
 
 const getMonacoLanguage = (filename: string): string => {
@@ -409,6 +417,7 @@ export default function App() {
     const [version, setVersion] = useState("0.0.0")
     const contentRef = useRef<string>('');
     const isDirtyRef = useRef<boolean>(false);
+    const [usingFallback, setUsingFallback] = useState<boolean>(false);
 
     useEffect(() => {
         const fetchVersion = async () => {
@@ -421,7 +430,7 @@ export default function App() {
             }
         };
 
-        fetchVersion();
+        void fetchVersion();
     }, []);
 
     const isImageFile = (filename: string) => {
@@ -499,74 +508,209 @@ export default function App() {
         setHasOpened(true);
     }, []);
 
+    const handleSaveFile = useCallback(async () => {
+        if (!currentFile) {
+            console.error("No file to save");
+            return;
+        }
+
+        if (usingFallback) {
+            alert("Saving is not supported in compatibility mode. Please use a Chromium-based browser (Chrome, Edge) for full functionality.");
+            return;
+        }
+
+        try {
+            const fileEntry = fileList.find((f) => !('kind' in f) && f.name === currentFile);
+            if (!fileEntry) {
+                console.error("File not found:", currentFile);
+                return;
+            }
+
+            const file = fileEntry as FileEntry;
+            const contentToSave = contentRef.current;
+
+            const writable = await file.handle.createWritable();
+            await writable.write(contentToSave);
+            await writable.close();
+
+            setFileList(prev =>
+                prev.map(entry =>
+                    !('kind' in entry) && entry.name === currentFile
+                        ? {...entry, content: contentToSave}
+                        : entry
+                )
+            );
+
+            isDirtyRef.current = false;
+            console.log('File saved successfully');
+        } catch (err) {
+            console.error("Saving file failed", err);
+            alert("Failed to save file. Make sure you're using a Chromium-based browser for full editing capabilities.");
+        }
+    }, [currentFile, fileList, usingFallback]);
+
     const handleOpenFolder = useCallback(async () => {
         try {
             if ('showDirectoryPicker' in window) {
-                const dirHandle = await (window as any).showDirectoryPicker();
-                setDirStack([]);
-                await readDirectory(dirHandle);
-            } else {
-                const input = document.createElement('input');
-                input.type = 'file';
-                input.webkitdirectory = true;
-                (input as any).directory = true;
-                input.multiple = true;
-
-                input.onchange = async (e) => {
-                    const files = Array.from((e.target as HTMLInputElement).files || []);
-                    if (files.length === 0) return;
-
-                    const entries: Entry[] = [];
-                    const dirName = files[0].webkitRelativePath.split('/')[0];
-
-                    for (const file of files) {
-                        if (file.name === dirName) continue;
-
-                        const content = await file.text();
-                        const virtualHandle = {
-                            getFile: async () => file,
-                            createWritable: async () => {
-                                throw new Error("Write operations not supported in compatibility mode");
-                            }
-                        } as unknown as FileSystemFileHandle;
-
-                        entries.push({
-                            name: file.name,
-                            handle: virtualHandle,
-                            content
-                        });
-                    }
-
-                    entries.sort((a, b) => {
-                        if ('kind' in a && a.kind === 'directory') return -1;
-                        if ('kind' in b && b.kind === 'directory') return 1;
-                        return a.name.localeCompare(b.name);
-                    });
-
-                    setFileList(entries);
+                try {
+                    const dirHandle = await (window as any).showDirectoryPicker();
                     setDirStack([]);
-                    setHasOpened(true);
-
-                    const virtualDirHandle = {
-                        name: dirName,
-                        kind: 'directory'
-                    } as unknown as FileSystemDirectoryHandle;
-
-                    setCurrentDirHandle(virtualDirHandle);
-                };
-
-                input.click();
+                    setUsingFallback(false);
+                    await readDirectory(dirHandle);
+                    return;
+                } catch (err: any) {
+                    if (err.name !== 'AbortError') {
+                        console.warn("File System Access API failed, using fallback:", err);
+                    } else {
+                        return;
+                    }
+                }
             }
+
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.webkitdirectory = true;
+            (input as any).directory = true;
+            input.multiple = true;
+
+            input.onchange = async (e) => {
+                const files = Array.from((e.target as HTMLInputElement).files || []);
+                if (files.length === 0) return;
+
+                const entries: Entry[] = [];
+                const dirName = files[0].webkitRelativePath.split('/')[0];
+
+                const rootFiles = files.filter(f => f.webkitRelativePath.split('/').length === 2);
+
+                const subdirs = new Set<string>();
+                files.forEach(f => {
+                    const parts = f.webkitRelativePath.split('/');
+                    if (parts.length > 2) {
+                        subdirs.add(parts[1]);
+                    }
+                });
+
+                for (const subdir of Array.from(subdirs)) {
+                    const subdirFiles = files.filter(f => f.webkitRelativePath.split('/')[1] === subdir);
+
+                    const virtualDirHandle: VirtualDirectoryHandle = {
+                        name: subdir,
+                        kind: 'directory',
+                        _isVirtual: true,
+                        _files: subdirFiles,
+                        values: async function* (this: VirtualDirectoryHandle) {
+                            const immediateFiles = this._files.filter((f: File) => {
+                                const parts = f.webkitRelativePath.split('/');
+                                return parts.length === 3;
+                            });
+
+                            for (const file of immediateFiles) {
+                                yield {
+                                    name: file.name,
+                                    kind: 'file',
+                                    getFile: async () => file,
+                                    createWritable: async () => {
+                                        throw new Error("Write operations not supported in compatibility mode");
+                                    }
+                                };
+                            }
+
+                            // Add nested subdirectories
+                            const nestedDirs = new Set<string>();
+                            this._files.forEach((f: File) => {
+                                const parts = f.webkitRelativePath.split('/');
+                                if (parts.length > 3) {
+                                    nestedDirs.add(parts[2]);
+                                }
+                            });
+
+                            for (const nested of nestedDirs) {
+                                const nestedFiles = this._files.filter((f: File) =>
+                                    f.webkitRelativePath.split('/')[2] === nested
+                                );
+
+                                const nestedHandle: VirtualDirectoryHandle = {
+                                    name: nested,
+                                    kind: 'directory',
+                                    _isVirtual: true,
+                                    _files: nestedFiles,
+                                    values: async function* (this: VirtualDirectoryHandle) {
+                                        const files = this._files.filter((f: File) => {
+                                            const parts = f.webkitRelativePath.split('/');
+                                            return parts.length === 4;
+                                        });
+                                        for (const file of files) {
+                                            yield {
+                                                name: file.name,
+                                                kind: 'file',
+                                                getFile: async () => file,
+                                                createWritable: async () => {
+                                                    throw new Error("Write operations not supported in compatibility mode");
+                                                }
+                                            };
+                                        }
+                                    }
+                                };
+
+                                yield nestedHandle as unknown as FileSystemDirectoryHandle;
+                            }
+                        }
+                    };
+
+                    entries.push({
+                        name: subdir,
+                        handle: virtualDirHandle as unknown as FileSystemDirectoryHandle,
+                        kind: 'directory'
+                    });
+                }
+
+                for (const file of rootFiles) {
+                    const virtualHandle = {
+                        getFile: async () => file,
+                        createWritable: async () => {
+                            throw new Error("Write operations not supported in compatibility mode");
+                        }
+                    } as unknown as FileSystemFileHandle;
+
+                    const text = await file.text();
+                    entries.push({
+                        name: file.name,
+                        handle: virtualHandle,
+                        content: text
+                    });
+                }
+
+                entries.sort((a, b) => {
+                    if ('kind' in a && a.kind === 'directory') return -1;
+                    if ('kind' in b && b.kind === 'directory') return 1;
+                    return a.name.localeCompare(b.name);
+                });
+
+                setFileList(entries);
+                setDirStack([]);
+                setHasOpened(true);
+                setUsingFallback(true);
+
+                const virtualRootHandle = {
+                    name: dirName,
+                    kind: 'directory',
+                    _isVirtual: true
+                } as unknown as FileSystemDirectoryHandle;
+
+                setCurrentDirHandle(virtualRootHandle);
+            };
+
+            input.click();
         } catch (err) {
-            console.error("Folder selection cancelled or unsupported", err);
-            alert("Your browser may not fully support folder selection. For the best experience, please use Chrome or Edge.");
+            console.error("Error opening folder:", err);
+            alert("Failed to open folder. Please try again.");
         }
     }, [readDirectory]);
 
     const handleFileClick = useCallback(async (entry: Entry) => {
         if (isDirtyRef.current && currentFile) {
             const confirmSave = window.confirm("You have unsaved changes. Do you want to save them before opening another file?");
-            if (confirmSave) {
+            if (confirmSave && !usingFallback) {
                 await handleSaveFile();
             }
             isDirtyRef.current = false;
@@ -576,13 +720,13 @@ export default function App() {
             setDirStack((prev) => [...prev, currentDirHandle!]);
             await readDirectory(entry.handle);
         } else {
-            setCurrentFile(entry.name);
-            openTab(entry.name);
+            const fileEntry = entry as FileEntry;
+            setCurrentFile(fileEntry.name);
+            openTab(fileEntry.name);
 
-            // @ts-ignore
-            const file = await entry.handle.getFile();
+            const file = await fileEntry.handle.getFile();
 
-            if (isImageFile(entry.name) || isVideoFile(entry.name)) {
+            if (isImageFile(fileEntry.name) || isVideoFile(fileEntry.name)) {
                 const url = URL.createObjectURL(file);
                 setMediaURL(url);
                 setFileContent('');
@@ -593,8 +737,7 @@ export default function App() {
                     return;
                 }
 
-                // @ts-ignore
-                const content = entry.content;
+                const content = fileEntry.content;
                 if (isBinaryContent(content)) {
                     alert("This file appears to be binary and cannot be opened.");
                     return;
@@ -605,7 +748,7 @@ export default function App() {
                 setMediaURL(null);
             }
         }
-    }, [openTab, readDirectory, currentDirHandle, currentFile]);
+    }, [openTab, readDirectory, currentDirHandle, currentFile, usingFallback, handleSaveFile]);
 
     const goBackDirectory = useCallback(() => {
         const newStack = [...dirStack];
@@ -615,40 +758,6 @@ export default function App() {
             readDirectory(parent);
         }
     }, [dirStack, readDirectory]);
-
-    const handleSaveFile = useCallback(async () => {
-        if (!currentFile) {
-            console.error("No file to save");
-            return;
-        }
-
-        try {
-            const fileEntry = fileList.find((f) => 'handle' in f && f.name === currentFile);
-            if (!fileEntry || 'kind' in fileEntry) {
-                console.error("File not found or is a folder:", currentFile);
-                return;
-            }
-
-            const contentToSave = contentRef.current;
-
-            const writable = await fileEntry.handle.createWritable();
-            await writable.write(contentToSave);
-            await writable.close();
-
-            setFileList(prev =>
-                prev.map(entry =>
-                    'handle' in entry && entry.name === currentFile
-                        ? {...entry, content: contentToSave}
-                        : entry
-                )
-            );
-
-            isDirtyRef.current = false;
-            console.log('File saved successfully');
-        } catch (err) {
-            console.error("Saving file failed", err);
-        }
-    }, [currentFile, fileList]);
 
     const handleKeyDown = useCallback((e: KeyboardEvent) => {
         if (e.ctrlKey && e.key === 's' || e.metaKey && e.key === 's') {
@@ -742,7 +851,7 @@ export default function App() {
     const handleTabClick = useCallback(async (filename: string) => {
         if (isDirtyRef.current && currentFile && currentFile !== filename) {
             const confirmSave = window.confirm("You have unsaved changes. Do you want to save them before switching tabs?");
-            if (confirmSave) {
+            if (confirmSave && !usingFallback) {
                 await handleSaveFile();
             }
             isDirtyRef.current = false;
@@ -752,8 +861,8 @@ export default function App() {
         const selectedFile = fileList.find((file) => file.name === filename && !('kind' in file));
         if (!selectedFile) return;
 
-        // @ts-ignore
-        const file = await selectedFile.handle.getFile();
+        const fileEntry = selectedFile as FileEntry;
+        const file = await fileEntry.handle.getFile();
 
         if (isImageFile(filename) || isVideoFile(filename)) {
             const url = URL.createObjectURL(file);
@@ -776,7 +885,7 @@ export default function App() {
             setFileContent(content);
             setMediaURL(null);
         }
-    }, [currentFile, fileList, handleSaveFile]);
+    }, [currentFile, fileList, handleSaveFile, usingFallback]);
 
     const tabItems = useMemo(() => openTabs.map((filename) => (
         <button
