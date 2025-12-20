@@ -19,7 +19,7 @@ const StatusBar: React.FC<StatusBarProps> = ({
         <button
           className={`statusbar-button ${projectStructureOpen ? "active" : ""}`}
           onClick={onProjectStructureToggle}
-          title="Toggle Project Structure"
+          title="Toggle Project Structure (Ctrl+B)"
         >
           <i className="fa-solid fa-folder-tree" />
         </button>
@@ -28,7 +28,7 @@ const StatusBar: React.FC<StatusBarProps> = ({
         <button
           className={`statusbar-button ${terminalOpen ? "active" : ""}`}
           onClick={onTerminalToggle}
-          title="Toggle Terminal"
+          title="Toggle Terminal (Ctrl+J)"
         >
           <i className="fa-solid fa-terminal" />
         </button>
