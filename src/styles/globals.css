@@ -49,13 +49,19 @@ html,
     flex: 1;
     display: flex;
     align-items: center;
-    padding-left: 12px;
+    padding-left: 10px;
 }
 
 .titlebar-title {
     font-size: 12px;
     color: #cbcfd4;
     font-weight: 400;
+}
+
+.titlebar-icon {
+    width: 20px;
+    height: 20px;
+    display: block;
 }
 
 .titlebar-buttons {

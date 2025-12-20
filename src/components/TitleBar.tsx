@@ -42,7 +42,7 @@ const TitleBar: React.FC<TitleBarProps> = ({
     <div className="titlebar" data-tauri-drag-region>
       <div className="titlebar-content" data-tauri-drag-region>
         <div className="titlebar-title" data-tauri-drag-region>
-          XD's Code
+          <img src="/icon.png" className="titlebar-icon" />
         </div>
       </div>
 
