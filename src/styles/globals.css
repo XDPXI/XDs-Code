@@ -5,7 +5,7 @@ html,
     margin: 0;
     padding: 0;
     height: 100%;
-    background-color: #282c33;
+    background-color: #2f343e;
     font-family: "JetBrains Mono", "Fira Code", monospace;
     transition: background-color 0.3s ease;
 }
@@ -34,10 +34,66 @@ html,
     scrollbar-color: #464b57 transparent;
 }
 
+.titlebar {
+    height: 30px;
+    background-color: #3b414d;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    user-select: none;
+    position: relative;
+    z-index: 1000;
+}
+
+.titlebar-content {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    padding-left: 12px;
+}
+
+.titlebar-title {
+    font-size: 12px;
+    color: #cbcfd4;
+    font-weight: 400;
+}
+
+.titlebar-buttons {
+    display: flex;
+    height: 100%;
+}
+
+.titlebar-button {
+    width: 46px;
+    height: 100%;
+    border: none;
+    background: transparent;
+    color: #cbcfd4;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.2s ease;
+    font-size: 11px;
+}
+
+.titlebar-button:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.titlebar-button.close:hover {
+    background-color: #e81123;
+    color: #ffffff;
+}
+
+.titlebar-button i {
+    pointer-events: none;
+}
+
 .editor-container {
     display: flex;
     width: 100vw;
-    height: 100vh;
+    height: calc(100vh - 30px);
     background-color: #2f343e;
 }
 
@@ -231,27 +287,7 @@ html,
 .tab-item:hover {
     color: #cbcfd4;
     background-color: rgba(70, 75, 87, 0.2);
-}
-
-.close-tab-btn {
-    background: none;
-    border: none;
-    color: #9ca2af;
-    cursor: pointer;
-    margin-left: 10px;
-    padding: 0;
-    font-size: 12px;
-    line-height: 1;
-    transition: color 0.2s ease;
-    width: 16px;
-    height: 16px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.close-tab-btn:hover {
-    color: #cbcfd4;
+    border-bottom: 1px solid rgba(70, 75, 87, 0.2);
 }
 
 .media-preview {

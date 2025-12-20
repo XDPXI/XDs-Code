@@ -4,6 +4,7 @@ import "./styles/fontawesome.css";
 import { open } from "@tauri-apps/plugin-dialog";
 import { invoke } from "@tauri-apps/api/core";
 import Editor from "@monaco-editor/react";
+import TitleBar from "./components/TitleBar";
 import {
   getMonacoLanguage,
   getFileIcon,
@@ -345,93 +346,84 @@ export default function App() {
           aria-selected={currentFile === tab.path}
         >
           {tab.name}
-          <button
-            className="close-tab-btn"
-            onClick={(e) => {
-              e.stopPropagation();
-              closeTab(tab.path);
-            }}
-            aria-label={`Close ${tab.name} tab`}
-            tabIndex={0}
-            type="button"
-          >
-            X
-          </button>
         </button>
       )),
     [openTabs, currentFile, closeTab, handleTabClick],
   );
 
   return (
-    <div className="editor-container">
-      <div className="sidebar">
-        <button className="open-folder-btn" onClick={handleOpenFolder}>
-          Open Folder
-        </button>
-        <div className="file-list">{fileItems}</div>
-      </div>
+    <>
+      <TitleBar />
+      <div className="editor-container">
+        <div className="sidebar">
+          <button className="open-folder-btn" onClick={handleOpenFolder}>
+            Open Folder
+          </button>
+          <div className="file-list">{fileItems}</div>
+        </div>
 
-      <div className="main-editor">
-        <div className="tabs">{tabItems}</div>
-        <div className="editor">
-          {mediaURL && isImageFile(currentFile ?? "") && (
-            <div className="media-preview">
-              <img
-                src={mediaURL}
-                alt={currentFile ?? ""}
-                style={{ maxWidth: "100%", maxHeight: "100%" }}
-              />
-            </div>
-          )}
-
-          {mediaURL && isVideoFile(currentFile ?? "") && (
-            <div className="media-preview">
-              <video controls style={{ maxWidth: "100%", maxHeight: "100%" }}>
-                <source src={mediaURL} />
-                <track
-                  kind="captions"
-                  src=""
-                  label="English"
-                  srcLang="en"
-                  default
+        <div className="main-editor">
+          <div className="tabs">{tabItems}</div>
+          <div className="editor">
+            {mediaURL && isImageFile(currentFile ?? "") && (
+              <div className="media-preview">
+                <img
+                  src={mediaURL}
+                  alt={currentFile ?? ""}
+                  style={{ maxWidth: "100%", maxHeight: "100%" }}
                 />
-                Your browser does not support the video tag.
-              </video>
-            </div>
-          )}
+              </div>
+            )}
 
-          {!mediaURL && (
-            <Editor
-              height="100%"
-              language={getMonacoLanguage(
-                currentFile
-                  ? currentFile.split("/").pop() ||
-                      currentFile.split("\\").pop() ||
-                      ""
-                  : "",
-              )}
-              value={fileContent}
-              onChange={(value) => {
-                contentRef.current = value || "";
-                setFileContent(value || "");
-                isDirtyRef.current = true;
-              }}
-              beforeMount={defineCustomTheme}
-              theme="xd-dark"
-              options={{
-                fontFamily: "JetBrains Mono, Fira Code, monospace",
-                fontSize: 14,
-                minimap: { enabled: false },
-                wordWrap: "on",
-                scrollBeyondLastLine: false,
-                lineNumbers: "on",
-                renderLineHighlight: "all",
-                automaticLayout: true,
-              }}
-            />
-          )}
+            {mediaURL && isVideoFile(currentFile ?? "") && (
+              <div className="media-preview">
+                <video controls style={{ maxWidth: "100%", maxHeight: "100%" }}>
+                  <source src={mediaURL} />
+                  <track
+                    kind="captions"
+                    src=""
+                    label="English"
+                    srcLang="en"
+                    default
+                  />
+                  Your browser does not support the video tag.
+                </video>
+              </div>
+            )}
+
+            {!mediaURL && (
+              <Editor
+                height="100%"
+                language={getMonacoLanguage(
+                  currentFile
+                    ? currentFile.split("/").pop() ||
+                        currentFile.split("\\").pop() ||
+                        ""
+                    : "",
+                )}
+                value={fileContent}
+                onChange={(value) => {
+                  contentRef.current = value || "";
+                  setFileContent(value || "");
+                  isDirtyRef.current = true;
+                }}
+                beforeMount={defineCustomTheme}
+                theme="xd-dark"
+                options={{
+                  fontFamily: "JetBrains Mono, Fira Code, monospace",
+                  fontSize: 14,
+                  minimap: { enabled: false },
+                  wordWrap: "on",
+                  scrollBeyondLastLine: false,
+                  lineNumbers: "on",
+                  renderLineHighlight: "all",
+                  automaticLayout: true,
+                }}
+              />
+            )}
+          </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }
