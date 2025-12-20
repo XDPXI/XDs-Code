@@ -1,105 +1,105 @@
-﻿body,
+body,
 html,
 #__next {
     overflow: hidden;
     margin: 0;
     padding: 0;
     height: 100%;
-    background-color: #1e1e1e;
+    background-color: #282c33;
     font-family: "JetBrains Mono", "Fira Code", monospace;
     transition: background-color 0.3s ease;
 }
 
 ::-webkit-scrollbar {
-    width: 10px;
-    height: 10px;
+    width: 8px;
+    height: 8px;
 }
 
 ::-webkit-scrollbar-track {
-    background: #1e1e1e;
-    border-radius: 6px;
+    background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-    background-color: #3a3a3a;
-    border-radius: 6px;
-    border: 2px solid #1e1e1e;
+    background-color: #464b57;
+    border-radius: 4px;
     transition: background-color 0.3s ease;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-    background-color: #4a4a4a;
+    background-color: #535966;
 }
 
 * {
     scrollbar-width: thin;
-    scrollbar-color: #3a3a3a #1e1e1e;
+    scrollbar-color: #464b57 transparent;
 }
 
 .editor-container {
     display: flex;
     width: 100vw;
     height: 100vh;
-    background-color: #1e1e1e;
+    background-color: #2f343e;
 }
 
 .sidebar {
-    width: 250px;
-    height: calc(100% - 20px);
-    margin: 10px;
-    background-color: #2b2b2b;
-    border-radius: 12px;
-    border: 1px solid #3a3a3a;
-    padding: 16px;
+    width: 240px;
+    height: 100%;
+    background-color: #2f343e;
+    border-right: 1px solid #464b57;
+    padding: 0;
     box-sizing: border-box;
-    color: #ffffff;
+    color: #cbcfd4;
     display: flex;
     flex-direction: column;
-    transition:
-        background-color 0.3s ease,
-        border-color 0.3s ease;
+    transition: border-color 0.3s ease;
 }
 
 .open-folder-btn {
-    background-color: #3a3a3a;
-    color: #fff;
-    border: none;
-    padding: 8px 12px;
-    border-radius: 6px;
+    background-color: transparent;
+    color: #9ca2af;
+    border: 1px solid #464b57;
+    padding: 6px 12px;
+    border-radius: 4px;
     cursor: pointer;
-    margin-bottom: 12px;
-    transition: background-color 0.3s ease;
+    margin: 12px 12px 8px 12px;
+    font-size: 13px;
+    transition: all 0.2s ease;
 }
 
 .open-folder-btn:hover {
-    background-color: #4a4a4a;
+    background-color: rgba(70, 75, 87, 0.3);
+    border-color: #535966;
+    color: #cbcfd4;
 }
 
 .workspace-name {
-    font-size: 14px;
-    color: #ccc;
-    margin-bottom: 10px;
-    transition: color 0.3s ease;
+    font-size: 12px;
+    color: #9ca2af;
+    margin: 0 12px 8px 12px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
 .file-list {
     font-size: 13px;
     overflow-y: auto;
     flex-grow: 1;
+    padding: 4px 8px;
 }
 
 .file-item {
-    padding: 6px 8px;
-    border-radius: 6px;
+    padding: 4px 8px;
+    border-radius: 4px;
     cursor: pointer;
     display: flex;
     align-items: center;
     gap: 8px;
     transition:
-        background-color 0.2s ease,
-        padding-left 0.2s ease;
+        background-color 0.15s ease,
+        color 0.15s ease;
     background: transparent;
-    color: inherit;
+    color: #9ca2af;
     font-size: inherit;
     text-align: left;
     width: 100%;
@@ -108,44 +108,43 @@ html,
 }
 
 .file-item:hover {
-    color: #ffffff;
-    background-color: #393939;
-    border-radius: 6px;
-    cursor: pointer;
-    padding-left: 4px;
+    color: #cbcfd4;
+    background-color: rgba(70, 75, 87, 0.3);
 }
 
 .file-icon {
-    margin-right: 8px;
+    margin-right: 6px;
     width: 16px;
     min-width: 16px;
     text-align: center;
-    color: #bbb;
-    transition: color 0.3s ease;
+    color: #9ca2af;
+    transition: color 0.2s ease;
+}
+
+.file-item:hover .file-icon {
+    color: #cbcfd4;
 }
 
 .editor {
     flex: 1;
     display: flex;
     min-height: 0;
+    background-color: #282c33;
 }
 
 .editor-textarea {
-    border-top: 1px solid #3a3a3a;
-    border-right: 0 hidden #ffffff;
-    border-left: 0 hidden #ffffff;
-    border-bottom: 0 hidden #ffffff;
+    border: none;
     flex-grow: 1;
     height: 100%;
     outline: none;
     resize: none;
-    background-color: #1e1e1e;
-    color: #d4d4d4;
+    background-color: #282c33;
+    color: #cbcfd4;
     padding: 10px;
     box-sizing: border-box;
     font-family: monospace;
-    font-size: 16px;
-    line-height: 1.5em;
+    font-size: 14px;
+    line-height: 1.6em;
     overflow-y: auto;
     text-wrap: nowrap;
 }
@@ -153,37 +152,38 @@ html,
 .starter-screen {
     height: 100vh;
     width: 100vw;
-    background-color: #1e1e1e;
+    background-color: #2f343e;
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
     font-family: "JetBrains Mono", monospace;
-    color: white;
-    transition: background-color 0.3s ease;
+    color: #cbcfd4;
 }
 
 .starter-title {
-    font-size: 48px;
-    margin-bottom: 32px;
-    color: #ff6b6b;
-    transition: color 0.3s ease;
+    font-size: 32px;
+    margin-bottom: 24px;
+    color: #cbcfd4;
+    font-weight: 500;
+    letter-spacing: -0.5px;
 }
 
 .starter-btn {
-    background-color: #3a3a3a;
-    color: white;
-    border: none;
-    padding: 12px 20px;
-    border-radius: 8px;
+    background-color: rgba(70, 75, 87, 0.2);
+    color: #cbcfd4;
+    border: 1px solid #464b57;
+    padding: 10px 18px;
+    border-radius: 6px;
     cursor: pointer;
-    margin: 10px;
-    font-size: 16px;
-    transition: background-color 0.3s ease;
+    margin: 8px;
+    font-size: 14px;
+    transition: all 0.2s ease;
 }
 
 .starter-btn:hover {
-    background-color: #4a4a4a;
+    background-color: rgba(70, 75, 87, 0.4);
+    border-color: #535966;
 }
 
 .main-editor {
@@ -191,60 +191,66 @@ html,
     flex-direction: column;
     flex: 1;
     overflow: hidden;
+    background-color: #282c33;
 }
 
 .tabs {
     display: flex;
     overflow-x: auto;
-    padding: 0 10px;
-    height: 40px;
+    padding: 0;
+    height: 36px;
     align-items: center;
+    background-color: #2f343e;
+    border-bottom: 1px solid #464b57;
 }
 
 .tab-item {
-    padding: 8px 16px;
+    padding: 0 16px;
+    height: 100%;
     cursor: pointer;
+    border: none;
     border-bottom: 2px solid transparent;
-    border-top: 0 none transparent;
-    border-left: 0 none transparent;
-    border-right: 0 none transparent;
-    color: #fff;
+    color: #9ca2af;
     display: flex;
     align-items: center;
     white-space: nowrap;
-    transition: all 0.3s ease;
+    transition: all 0.2s ease;
     background: transparent;
     font-family: inherit;
-    font-size: inherit;
+    font-size: 13px;
+    font-weight: 400;
 }
 
 .tab-item.active {
-    transition: all 0.3s ease;
-    border-radius: 5px;
-    background-color: #2b2b2b;
-    border-bottom: 2px solid #3a3a3a;
+    color: #cbcfd4;
+    background-color: #282c33;
+    border-bottom: 2px solid #cbcfd4;
 }
 
 .tab-item:hover {
-    transition: all 0.3s ease;
-    border-radius: 5px;
-    background-color: #2b2b2b;
+    color: #cbcfd4;
+    background-color: rgba(70, 75, 87, 0.2);
 }
 
 .close-tab-btn {
     background: none;
     border: none;
-    color: #bbb;
+    color: #9ca2af;
     cursor: pointer;
-    margin-left: 8px;
+    margin-left: 10px;
     padding: 0;
     font-size: 12px;
     line-height: 1;
-    transition: color 0.3s ease;
+    transition: color 0.2s ease;
+    width: 16px;
+    height: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .close-tab-btn:hover {
-    color: #fff;
+    color: #cbcfd4;
 }
 
 .media-preview {
@@ -253,12 +259,39 @@ html,
     display: flex;
     align-items: center;
     justify-content: center;
-    background: #1e1e1e;
-    padding: 10px;
+    background: #282c33;
+    padding: 20px;
 }
 
 .media-preview img,
 .media-preview video {
-    border: 1px solid #444;
+    border: 1px solid #464b57;
     border-radius: 4px;
+}
+
+.settings-info {
+    background-color: rgba(70, 75, 87, 0.2);
+    border: 1px solid #464b57;
+    border-radius: 8px;
+    padding: 20px;
+    margin: 20px 0;
+    max-width: 500px;
+}
+
+.settings-info p {
+    margin: 8px 0;
+    font-size: 14px;
+    color: #cbcfd4;
+}
+
+.settings-info strong {
+    color: #9ca2af;
+    font-weight: 500;
+    margin-right: 8px;
+}
+
+.settings-actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 24px;
 }
