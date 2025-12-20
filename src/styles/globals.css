@@ -90,6 +90,28 @@ html,
     pointer-events: none;
 }
 
+.titlebar-open-folder-btn {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    top: 50%;
+    transform: translate(-50%, -50%);
+    background-color: transparent;
+    color: #9ca2af;
+    border: 1px solid #464b57;
+    padding: 6px 12px;
+    cursor: pointer;
+    font-size: 13px;
+    transition: all 0.2s ease;
+    z-index: 500;
+}
+
+.titlebar-open-folder-btn:hover {
+    background-color: rgba(70, 75, 87, 0.3);
+    border-color: #535966;
+    color: #cbcfd4;
+}
+
 .editor-container {
     display: flex;
     width: 100vw;

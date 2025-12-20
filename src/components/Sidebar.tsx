@@ -66,9 +66,11 @@ const Sidebar: React.FC<SidebarProps> = ({
 
   return (
     <div className="sidebar">
-      <button className="open-folder-btn" onClick={handleOpenFolder}>
-        Open Folder
-      </button>
+      {fileList.length === 0 && (
+        <button className="open-folder-btn" onClick={handleOpenFolder}>
+          Open Folder
+        </button>
+      )}
       <div className="file-list">{fileItems}</div>
     </div>
   );

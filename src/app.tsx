@@ -38,6 +38,7 @@ export default function App() {
   const [mediaURL, setMediaURL] = useState<string | null>(null);
   const contentRef = useRef<string>("");
   const isDirtyRef = useRef<boolean>(false);
+  const [selectedDir, setSelectedDir] = useState<string>("");
 
   const defineCustomTheme = (monaco: typeof import("monaco-editor")) => {
     monaco.editor.defineTheme("xd-dark", {
@@ -166,6 +167,7 @@ export default function App() {
 
       if (selected && typeof selected === "string") {
         setDirStack([]);
+        setSelectedDir(selected);
         await readDirectory(selected);
       } else if (selected) {
         console.error("Unexpected selected value:", selected);
@@ -306,7 +308,11 @@ export default function App() {
 
   return (
     <>
-      <TitleBar />
+      <TitleBar
+        fileList={fileList}
+        handleOpenFolder={handleOpenFolder}
+        selectedDir={selectedDir}
+      />
       <div className="editor-container">
         <Sidebar
           fileList={fileList}

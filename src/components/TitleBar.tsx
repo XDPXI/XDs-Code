@@ -1,6 +1,24 @@
 import { getCurrentWindow } from "@tauri-apps/api/window";
+import React from "react";
 
-export default function TitleBar() {
+interface FileEntry {
+  name: string;
+  path: string;
+  is_directory: boolean;
+  size: number;
+}
+
+interface TitleBarProps {
+  fileList: FileEntry[];
+  handleOpenFolder: () => void;
+  selectedDir: string;
+}
+
+const TitleBar: React.FC<TitleBarProps> = ({
+  fileList,
+  handleOpenFolder,
+  selectedDir,
+}) => {
   const appWindow = getCurrentWindow();
 
   const handleMinimize = async () => {
@@ -28,6 +46,12 @@ export default function TitleBar() {
         </div>
       </div>
 
+      {fileList.length > 0 && (
+        <button className="titlebar-open-folder-btn" onClick={handleOpenFolder}>
+          {selectedDir}
+        </button>
+      )}
+
       <div className="titlebar-buttons" data-tauri-drag-region="false">
         <button className="titlebar-button minimize" onClick={handleMinimize}>
           <i className="fa-solid fa-minus" />
@@ -43,4 +67,6 @@ export default function TitleBar() {
       </div>
     </div>
   );
-}
+};
+
+export default TitleBar;
