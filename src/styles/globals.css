@@ -35,7 +35,7 @@ html,
 }
 
 .titlebar {
-    height: 30px;
+    height: 36px;
     background-color: #3b414d;
     display: flex;
     justify-content: space-between;
@@ -93,7 +93,7 @@ html,
 .editor-container {
     display: flex;
     width: 100vw;
-    height: calc(100vh - 30px);
+    height: calc(100vh - 36px);
     background-color: #2f343e;
 }
 
