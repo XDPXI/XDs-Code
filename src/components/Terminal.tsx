@@ -1,7 +1,8 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Terminal as XTerm } from "xterm";
 import { FitAddon } from "xterm-addon-fit";
 import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
 
 import "xterm/css/xterm.css";
 
@@ -13,19 +14,22 @@ const Terminal: React.FC<TerminalProps> = ({ currentDir }) => {
   const terminalRef = useRef<HTMLDivElement>(null);
   const xtermRef = useRef<XTerm | null>(null);
   const fitAddonRef = useRef<FitAddon | null>(null);
+  const [busy, setBusy] = useState(false);
+  const commandBufferRef = useRef(""); // keep buffer across renders
 
   useEffect(() => {
+    // Initialize terminal only once
     const xterm = new XTerm({
       cursorBlink: true,
       fontFamily: "monospace",
       fontSize: 14,
       theme: {
         background: "#282c33",
+        foreground: "#ffffff",
       },
     });
 
     const fitAddon = new FitAddon();
-
     xterm.loadAddon(fitAddon);
     xterm.open(terminalRef.current!);
     fitAddon.fit();
@@ -33,62 +37,81 @@ const Terminal: React.FC<TerminalProps> = ({ currentDir }) => {
     xtermRef.current = xterm;
     fitAddonRef.current = fitAddon;
 
+    // initial prompt
     xterm.write("$ ");
 
-    let commandBuffer = "";
+    let unlistenOut: () => void;
+    let unlistenErr: () => void;
+    let unlistenFinished: () => void;
 
-    xterm.onData(async (data) => {
+    // listen to stdout
+    listen<string>("terminal-output", (event) => {
+      xterm.writeln(event.payload);
+    }).then((f) => (unlistenOut = f));
+
+    // listen to stderr
+    listen<string>("terminal-error", (event) => {
+      xterm.writeln(`\x1b[31m${event.payload}\x1b[0m`);
+    }).then((f) => (unlistenErr = f));
+
+    // listen to command finished
+    listen("command-finished", () => {
+      setBusy(false);
+      xterm.write("$ ");
+      commandBufferRef.current = "";
+    }).then((f) => (unlistenFinished = f));
+
+    // handle input
+    xterm.onData((data) => {
+      if (busy) return; // ignore input while busy
+
       const code = data.charCodeAt(0);
 
       // Enter
       if (code === 13) {
         xterm.write("\r\n");
 
-        if (commandBuffer.trim().length > 0) {
-          try {
-            const result = await invoke<string>("execute_terminal_command", {
-              command: commandBuffer,
-              cwd: currentDir || undefined,
-            });
-
-            if (result) {
-              xterm.write(result.replace(/\n/g, "\r\n"));
-            }
-          } catch (err) {
-            xterm.writeln(`Error: ${err}`);
-          }
+        const command = commandBufferRef.current.trim();
+        if (command.length > 0) {
+          setBusy(true);
+          invoke("execute_terminal_command", {
+            command,
+            cwd: currentDir || undefined,
+          });
+        } else {
+          xterm.write("$ ");
+          commandBufferRef.current = "";
         }
 
-        commandBuffer = "";
-        xterm.write("\r\n$ ");
         return;
       }
 
       // Backspace
       if (code === 127) {
-        if (commandBuffer.length > 0) {
-          commandBuffer = commandBuffer.slice(0, -1);
+        if (commandBufferRef.current.length > 0) {
+          commandBufferRef.current = commandBufferRef.current.slice(0, -1);
           xterm.write("\b \b");
         }
         return;
       }
 
       // Printable characters
-      commandBuffer += data;
+      commandBufferRef.current += data;
       xterm.write(data);
     });
 
-    const resizeObserver = new ResizeObserver(() => {
-      fitAddon.fit();
-    });
-
+    // handle terminal resize
+    const resizeObserver = new ResizeObserver(() => fitAddon.fit());
     resizeObserver.observe(terminalRef.current!);
 
     return () => {
       resizeObserver.disconnect();
       xterm.dispose();
+      unlistenOut?.();
+      unlistenErr?.();
+      unlistenFinished?.();
     };
-  }, [currentDir]);
+  }, []);
 
   return (
     <div

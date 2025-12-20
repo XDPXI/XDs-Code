@@ -1,9 +1,11 @@
 use serde::{Deserialize, Serialize};
 use std::fs;
+use std::io::{BufRead, BufReader};
 use std::path::{Path, PathBuf};
-use std::process::Command;
+use std::process::{Command, Stdio};
 use std::sync::Mutex;
-use tauri::State;
+use std::thread;
+use tauri::{AppHandle, Emitter, State};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct FileEntry {
@@ -319,44 +321,74 @@ fn run_file(path: String) -> Result<(), String> {
 }
 
 #[tauri::command]
-fn execute_terminal_command(command: String, cwd: Option<String>) -> Result<String, String> {
+fn execute_terminal_command(
+    app: AppHandle,
+    command: String,
+    cwd: Option<String>,
+) -> Result<(), String> {
     let working_dir = cwd.unwrap_or_else(|| {
         std::env::current_dir()
-            .unwrap_or_default()
+            .unwrap()
             .to_string_lossy()
             .to_string()
     });
 
     #[cfg(target_os = "windows")]
-    let shell = "pwsh";
-    #[cfg(target_os = "windows")]
-    let shell_arg = "-Command";
-
-    #[cfg(target_os = "macos")]
-    let shell = "zsh";
-    #[cfg(target_os = "macos")]
-    let shell_arg = "-c";
-
-    #[cfg(target_os = "linux")]
-    let shell = "bash";
-    #[cfg(target_os = "linux")]
-    let shell_arg = "-c";
-
-    let output = Command::new(shell)
-        .arg(shell_arg)
+    let mut child = Command::new("pwsh")
+        .arg("-Command")
         .arg(&command)
         .current_dir(&working_dir)
-        .output()
-        .map_err(|e| format!("Failed to execute command: {}", e))?;
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .map_err(|e| format!("Failed to spawn process: {}", e))?;
 
-    let stdout = String::from_utf8_lossy(&output.stdout).to_string();
-    let stderr = String::from_utf8_lossy(&output.stderr).to_string();
+    #[cfg(target_os = "macos")]
+    let mut child = Command::new("zsh")
+        .arg("-c")
+        .arg(&command)
+        .current_dir(&working_dir)
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .map_err(|e| format!("Failed to spawn process: {}", e))?;
 
-    if !stderr.is_empty() {
-        Ok(format!("{}{}", stdout, stderr))
-    } else {
-        Ok(stdout)
-    }
+    #[cfg(target_os = "linux")]
+    let mut child = Command::new("bash")
+        .arg("-c")
+        .arg(&command)
+        .current_dir(&working_dir)
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .map_err(|e| format!("Failed to spawn process: {}", e))?;
+
+    let stdout = child.stdout.take().unwrap();
+    let stderr = child.stderr.take().unwrap();
+    let app_stdout = app.clone();
+    let app_stderr = app.clone();
+    let app_finish = app.clone();
+
+    thread::spawn(move || {
+        let reader = BufReader::new(stdout);
+        for line in reader.lines().flatten() {
+            let _ = app_stdout.emit("terminal-output", line);
+        }
+    });
+
+    thread::spawn(move || {
+        let reader = BufReader::new(stderr);
+        for line in reader.lines().flatten() {
+            let _ = app_stderr.emit("terminal-error", line);
+        }
+    });
+
+    thread::spawn(move || {
+        let _ = child.wait();
+        let _ = app_finish.emit("command-finished", "");
+    });
+
+    Ok(())
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
