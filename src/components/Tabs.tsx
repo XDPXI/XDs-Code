@@ -1,11 +1,5 @@
 import React from "react";
 
-interface OpenFile {
-  name: string;
-  path: string;
-  content: string;
-}
-
 interface TabsProps {
   openTabs: OpenFile[];
   currentFile: string | null;

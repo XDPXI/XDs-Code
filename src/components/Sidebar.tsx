@@ -1,14 +1,6 @@
 import React, { useMemo, useState, useEffect, useRef } from "react";
 import { getFileIcon } from "../utils/fileHelpers";
 import { invoke } from "@tauri-apps/api/core";
-import { open as openDialog } from "@tauri-apps/plugin-dialog";
-
-interface FileEntry {
-  name: string;
-  path: string;
-  is_directory: boolean;
-  size: number;
-}
 
 interface SidebarProps {
   fileList: FileEntry[];
@@ -18,13 +10,6 @@ interface SidebarProps {
   handleOpenFolder: () => void;
   selectedDir: string;
   refreshDirectory: () => void;
-}
-
-interface ContextMenu {
-  x: number;
-  y: number;
-  type: "file" | "folder" | "empty";
-  entry?: FileEntry;
 }
 
 const Sidebar: React.FC<SidebarProps> = ({

@@ -10,24 +10,6 @@ import MediaPreview from "./components/MediaPreview";
 import EditorWrapper from "./components/EditorWrapper";
 import { isImageFile, isVideoFile } from "./utils/fileHelpers";
 
-interface FileEntry {
-  name: string;
-  path: string;
-  is_directory: boolean;
-  size: number;
-}
-
-interface DirectoryContents {
-  entries: FileEntry[];
-  current_path: string;
-}
-
-interface OpenFile {
-  name: string;
-  path: string;
-  content: string;
-}
-
 export default function App() {
   const [fileList, setFileList] = useState<FileEntry[]>([]);
   const [openTabs, setOpenTabs] = useState<OpenFile[]>([]);
@@ -171,7 +153,7 @@ export default function App() {
 
       console.log("Selected:", selected);
 
-      if (selected && typeof selected === "string") {
+      if (selected) {
         setDirStack([]);
         setSelectedDir(selected);
         await readDirectory(selected);
