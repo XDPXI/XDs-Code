@@ -58,14 +58,14 @@ namespace Installer
 
         private const string AppExeName = "xds-code.exe";
         private const string AppDisplayName = "XD's Code";
-        private const string AppVersion = "0.6.3";
+        private const string AppVersion = "0.7.0";
         private const string ShortcutName = AppDisplayName + ".lnk";
 
         private const string RegistryUninstallKey =
             @"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\" + AppDisplayName;
 
         private const string DownloadUrl =
-            "https://raw.githubusercontent.com/XDPXI/XDs-Code/main/installer/releases/0.6.3.zip";
+            "https://raw.githubusercontent.com/XDPXI/XDs-Code/main/installer/releases/0.7.0.zip";
 
         #endregion
 
@@ -148,7 +148,7 @@ namespace Installer
                         Log("Failed to create or open registry key for uninstallation.");
                         return;
                     }
-                    
+
                     key.SetValue("DisplayName", AppDisplayName);
                     key.SetValue("DisplayVersion", AppVersion);
                     key.SetValue("Publisher", "XDPXI");
