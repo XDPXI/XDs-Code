@@ -16,4 +16,3 @@
 | 0.X.X   | :white_check_mark: | :white_check_mark: | :white_check_mark: |
 
 ## Reporting a Vulnerability
-
