@@ -1,16 +1,14 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import "./styles/globals.css";
 import "./styles/fontawesome.css";
 import { open } from "@tauri-apps/plugin-dialog";
 import { invoke } from "@tauri-apps/api/core";
-import Editor from "@monaco-editor/react";
 import TitleBar from "./components/TitleBar";
-import {
-  getMonacoLanguage,
-  getFileIcon,
-  isImageFile,
-  isVideoFile,
-} from "./utils/fileHelpers";
+import Sidebar from "./components/Sidebar";
+import Tabs from "./components/Tabs";
+import MediaPreview from "./components/MediaPreview";
+import EditorWrapper from "./components/EditorWrapper";
+import { isImageFile, isVideoFile } from "./utils/fileHelpers";
 
 interface FileEntry {
   name: string;
@@ -58,6 +56,25 @@ export default function App() {
         // Selection
         "editor.selectionBackground": "#3a4a5e",
         "editor.inactiveSelectionBackground": "#3a4a5e80",
+      },
+    });
+
+    monaco.editor.defineTheme("xd-light", {
+      base: "vs",
+      inherit: true,
+      rules: [],
+      colors: {
+        // Background
+        "editor.background": "#fafafa",
+        "editorGutter.background": "#fafafa",
+
+        // Line Highlight
+        "editor.lineHighlightBorder": "#d0d0d0",
+        "editor.lineHighlightBackground": "#d0d0d015",
+
+        // Selection
+        "editor.selectionBackground": "#d4dbf4",
+        "editor.inactiveSelectionBackground": "#d4dbf480",
       },
     });
   };
@@ -287,138 +304,36 @@ export default function App() {
     [currentFile, openTabs, handleSaveFile],
   );
 
-  const fileItems = useMemo(() => {
-    const items = [];
-
-    if (dirStack.length > 0) {
-      items.push(
-        <button
-          key="up"
-          className="file-item"
-          onClick={goBackDirectory}
-          type="button"
-          aria-label="Go to parent directory"
-        >
-          <i className="fa-solid fa-arrow-up" /> ..
-        </button>,
-      );
-    }
-
-    for (const entry of fileList) {
-      const icon = entry.is_directory
-        ? "fa-solid fa-folder"
-        : getFileIcon(entry.name);
-      items.push(
-        <button
-          key={entry.path}
-          className="file-item"
-          onClick={() => handleFileClick(entry)}
-          type="button"
-          aria-label={
-            entry.is_directory
-              ? `Open folder ${entry.name}`
-              : `Open file ${entry.name}`
-          }
-        >
-          <i className={`file-icon ${icon}`} /> {entry.name}
-        </button>,
-      );
-    }
-
-    return items;
-  }, [fileList, handleFileClick, goBackDirectory, dirStack]);
-
-  const tabItems = useMemo(
-    () =>
-      openTabs.map((tab) => (
-        <button
-          key={tab.path}
-          className={`tab-item ${currentFile === tab.path ? "active" : ""}`}
-          onClick={() => handleTabClick(tab.path)}
-          onMouseDown={(e) => {
-            if (e.button === 1) {
-              e.preventDefault();
-              closeTab(tab.path);
-            }
-          }}
-          type="button"
-          role="tab"
-          aria-selected={currentFile === tab.path}
-        >
-          {tab.name}
-        </button>
-      )),
-    [openTabs, currentFile, closeTab, handleTabClick],
-  );
-
   return (
     <>
       <TitleBar />
       <div className="editor-container">
-        <div className="sidebar">
-          <button className="open-folder-btn" onClick={handleOpenFolder}>
-            Open Folder
-          </button>
-          <div className="file-list">{fileItems}</div>
-        </div>
+        <Sidebar
+          fileList={fileList}
+          dirStack={dirStack}
+          goBackDirectory={goBackDirectory}
+          handleFileClick={handleFileClick}
+          handleOpenFolder={handleOpenFolder}
+        />
 
         <div className="main-editor">
-          <div className="tabs">{tabItems}</div>
+          <Tabs
+            openTabs={openTabs}
+            currentFile={currentFile}
+            handleTabClick={handleTabClick}
+            closeTab={closeTab}
+          />
           <div className="editor">
-            {mediaURL && isImageFile(currentFile ?? "") && (
-              <div className="media-preview">
-                <img
-                  src={mediaURL}
-                  alt={currentFile ?? ""}
-                  style={{ maxWidth: "100%", maxHeight: "100%" }}
-                />
-              </div>
-            )}
-
-            {mediaURL && isVideoFile(currentFile ?? "") && (
-              <div className="media-preview">
-                <video controls style={{ maxWidth: "100%", maxHeight: "100%" }}>
-                  <source src={mediaURL} />
-                  <track
-                    kind="captions"
-                    src=""
-                    label="English"
-                    srcLang="en"
-                    default
-                  />
-                  Your browser does not support the video tag.
-                </video>
-              </div>
-            )}
-
-            {!mediaURL && (
-              <Editor
-                height="100%"
-                language={getMonacoLanguage(
-                  currentFile
-                    ? currentFile.split("/").pop() ||
-                        currentFile.split("\\").pop() ||
-                        ""
-                    : "",
-                )}
-                value={fileContent}
-                onChange={(value) => {
-                  contentRef.current = value || "";
-                  setFileContent(value || "");
-                  isDirtyRef.current = true;
-                }}
-                beforeMount={defineCustomTheme}
-                theme="xd-dark"
-                options={{
-                  fontFamily: "JetBrains Mono, Fira Code, monospace",
-                  fontSize: 14,
-                  minimap: { enabled: false },
-                  wordWrap: "on",
-                  scrollBeyondLastLine: false,
-                  lineNumbers: "on",
-                  renderLineHighlight: "all",
-                  automaticLayout: true,
-                }}
+            {mediaURL ? (
+              <MediaPreview mediaURL={mediaURL} currentFile={currentFile} />
+            ) : (
+              <EditorWrapper
+                currentFile={currentFile}
+                fileContent={fileContent}
+                contentRef={contentRef}
+                setFileContent={setFileContent}
+                isDirtyRef={isDirtyRef}
+                defineCustomTheme={defineCustomTheme}
               />
             )}
           </div>

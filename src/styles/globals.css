@@ -273,6 +273,10 @@ html,
     font-family: inherit;
     font-size: 13px;
     font-weight: 400;
+    border-left: 1px solid #2f343e;
+    border-right: 1px solid #2f343e;
+    border-bottom: 1px solid #2f343e;
+    border-top: 1px solid #2f343e;
 }
 
 .tab-item.active {
@@ -287,7 +291,10 @@ html,
 .tab-item:hover {
     color: #cbcfd4;
     background-color: rgba(70, 75, 87, 0.2);
-    border-bottom: 1px solid rgba(70, 75, 87, 0.2);
+    border-left: 1px solid #464b57;
+    border-right: 1px solid #464b57;
+    border-bottom: rgba(70, 75, 87, 0.2);
+    border-top: 1px solid #464b57;
 }
 
 .media-preview {
