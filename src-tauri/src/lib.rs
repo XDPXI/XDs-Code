@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::process::Command;
 use std::sync::Mutex;
 use tauri::State;
 
@@ -317,6 +318,47 @@ fn run_file(path: String) -> Result<(), String> {
     Ok(())
 }
 
+#[tauri::command]
+fn execute_terminal_command(command: String, cwd: Option<String>) -> Result<String, String> {
+    let working_dir = cwd.unwrap_or_else(|| {
+        std::env::current_dir()
+            .unwrap_or_default()
+            .to_string_lossy()
+            .to_string()
+    });
+
+    #[cfg(target_os = "windows")]
+    let shell = "pwsh";
+    #[cfg(target_os = "windows")]
+    let shell_arg = "-Command";
+
+    #[cfg(target_os = "macos")]
+    let shell = "zsh";
+    #[cfg(target_os = "macos")]
+    let shell_arg = "-c";
+
+    #[cfg(target_os = "linux")]
+    let shell = "bash";
+    #[cfg(target_os = "linux")]
+    let shell_arg = "-c";
+
+    let output = Command::new(shell)
+        .arg(shell_arg)
+        .arg(&command)
+        .current_dir(&working_dir)
+        .output()
+        .map_err(|e| format!("Failed to execute command: {}", e))?;
+
+    let stdout = String::from_utf8_lossy(&output.stdout).to_string();
+    let stderr = String::from_utf8_lossy(&output.stderr).to_string();
+
+    if !stderr.is_empty() {
+        Ok(format!("{}{}", stdout, stderr))
+    } else {
+        Ok(stdout)
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -337,6 +379,7 @@ pub fn run() {
             is_binary_file,
             open_in_file_manager,
             run_file,
+            execute_terminal_command,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

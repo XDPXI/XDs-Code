@@ -8,6 +8,8 @@ import Sidebar from "./components/Sidebar";
 import Tabs from "./components/Tabs";
 import MediaPreview from "./components/MediaPreview";
 import EditorWrapper from "./components/EditorWrapper";
+import StatusBar from "./components/StatusBar";
+import Terminal from "./components/Terminal";
 import { isImageFile, isVideoFile } from "./utils/fileHelpers";
 
 export default function App() {
@@ -18,9 +20,11 @@ export default function App() {
   const [currentDir, setCurrentDir] = useState<string>("");
   const [dirStack, setDirStack] = useState<string[]>([]);
   const [mediaURL, setMediaURL] = useState<string | null>(null);
+  const [terminalOpen, setTerminalOpen] = useState(false);
+  const [projectStructureOpen, setProjectStructureOpen] = useState(true);
+  const [selectedDir, setSelectedDir] = useState<string>("null");
   const contentRef = useRef<string>("");
   const isDirtyRef = useRef<boolean>(false);
-  const [selectedDir, setSelectedDir] = useState<string>("null");
 
   const defineCustomTheme = (monaco: typeof import("monaco-editor")) => {
     monaco.editor.defineTheme("xd-dark", {
@@ -254,6 +258,14 @@ export default function App() {
         e.preventDefault();
         closeTab(currentFile);
       }
+      if ((e.ctrlKey || e.metaKey) && e.key === "j") {
+        e.preventDefault();
+        setTerminalOpen((prev) => !prev);
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key === "b") {
+        e.preventDefault();
+        setProjectStructureOpen((prev) => !prev);
+      }
     },
     [handleSaveFile, closeTab, currentFile],
   );
@@ -295,42 +307,59 @@ export default function App() {
   );
 
   return (
-    <>
+    <div className="app-container">
       <TitleBar handleOpenFolder={handleOpenFolder} selectedDir={selectedDir} />
-      <div className="editor-container">
-        <Sidebar
-          fileList={fileList}
-          dirStack={dirStack}
-          goBackDirectory={goBackDirectory}
-          handleFileClick={handleFileClick}
-          handleOpenFolder={handleOpenFolder}
-          selectedDir={selectedDir}
-          refreshDirectory={refreshDirectory}
-        />
+      <div className="content-container">
+        {projectStructureOpen && (
+          <Sidebar
+            fileList={fileList}
+            dirStack={dirStack}
+            goBackDirectory={goBackDirectory}
+            handleFileClick={handleFileClick}
+            handleOpenFolder={handleOpenFolder}
+            selectedDir={selectedDir}
+            refreshDirectory={refreshDirectory}
+          />
+        )}
 
-        <div className="main-editor">
+        <div className="editor-area">
           <Tabs
             openTabs={openTabs}
             currentFile={currentFile}
             handleTabClick={handleTabClick}
             closeTab={closeTab}
           />
-          <div className="editor">
-            {mediaURL ? (
-              <MediaPreview mediaURL={mediaURL} currentFile={currentFile} />
-            ) : (
-              <EditorWrapper
-                currentFile={currentFile}
-                fileContent={fileContent}
-                contentRef={contentRef}
-                setFileContent={setFileContent}
-                isDirtyRef={isDirtyRef}
-                defineCustomTheme={defineCustomTheme}
-              />
+          <div className="editor-terminal-container">
+            <div className={`editor ${terminalOpen ? "split" : ""}`}>
+              {mediaURL ? (
+                <MediaPreview mediaURL={mediaURL} currentFile={currentFile} />
+              ) : (
+                <EditorWrapper
+                  currentFile={currentFile}
+                  fileContent={fileContent}
+                  contentRef={contentRef}
+                  setFileContent={setFileContent}
+                  isDirtyRef={isDirtyRef}
+                  defineCustomTheme={defineCustomTheme}
+                />
+              )}
+            </div>
+            {terminalOpen && (
+              <div className="terminal-pane">
+                <Terminal currentDir={currentDir} />
+              </div>
             )}
           </div>
         </div>
       </div>
-    </>
+      <StatusBar
+        onTerminalToggle={() => setTerminalOpen((prev) => !prev)}
+        onProjectStructureToggle={() =>
+          setProjectStructureOpen((prev) => !prev)
+        }
+        terminalOpen={terminalOpen}
+        projectStructureOpen={projectStructureOpen}
+      />
+    </div>
   );
 }
