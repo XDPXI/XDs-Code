@@ -4,6 +4,7 @@ import "./styles/fontawesome.css";
 import { open } from "@tauri-apps/plugin-dialog";
 import { invoke } from "@tauri-apps/api/core";
 import Editor from "@monaco-editor/react";
+import * as monaco from "monaco-editor";
 import {
   getMonacoLanguage,
   getFileIcon,
@@ -39,6 +40,27 @@ export default function App() {
   const [mediaURL, setMediaURL] = useState<string | null>(null);
   const contentRef = useRef<string>("");
   const isDirtyRef = useRef<boolean>(false);
+
+  const defineCustomTheme = (monaco: typeof import("monaco-editor")) => {
+    monaco.editor.defineTheme("xd-dark", {
+      base: "vs-dark",
+      inherit: true,
+      rules: [],
+      colors: {
+        // Background
+        "editor.background": "#282c33",
+        "editorGutter.background": "#282c33",
+
+        // Line Highlight
+        "editor.lineHighlightBorder": "#464b57",
+        "editor.lineHighlightBackground": "#464b5715",
+
+        // Selection
+        "editor.selectionBackground": "#3a4a5e",
+        "editor.inactiveSelectionBackground": "#3a4a5e80",
+      },
+    });
+  };
 
   const openTab = useCallback((file: OpenFile) => {
     setOpenTabs((prev) => {
@@ -395,7 +417,8 @@ export default function App() {
                 setFileContent(value || "");
                 isDirtyRef.current = true;
               }}
-              theme="vs-dark"
+              beforeMount={defineCustomTheme}
+              theme="xd-dark"
               options={{
                 fontFamily: "JetBrains Mono, Fira Code, monospace",
                 fontSize: 14,
