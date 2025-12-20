@@ -209,7 +209,6 @@ html,
     height: 100%;
     cursor: pointer;
     border: none;
-    border-bottom: 2px solid transparent;
     color: #9ca2af;
     display: flex;
     align-items: center;
@@ -224,7 +223,10 @@ html,
 .tab-item.active {
     color: #cbcfd4;
     background-color: #282c33;
-    border-bottom: 2px solid #cbcfd4;
+    border-left: 1px solid #464b57;
+    border-right: 1px solid #464b57;
+    border-bottom: 1px solid #282c33;
+    border-top: 1px solid #464b57;
 }
 
 .tab-item:hover {

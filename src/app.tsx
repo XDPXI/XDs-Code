@@ -4,7 +4,6 @@ import "./styles/fontawesome.css";
 import { open } from "@tauri-apps/plugin-dialog";
 import { invoke } from "@tauri-apps/api/core";
 import Editor from "@monaco-editor/react";
-import * as monaco from "monaco-editor";
 import {
   getMonacoLanguage,
   getFileIcon,
