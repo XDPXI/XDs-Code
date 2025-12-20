@@ -237,6 +237,86 @@ fn is_binary_file(path: String) -> Result<bool, String> {
     }
 }
 
+#[tauri::command]
+fn open_in_file_manager(path: String) -> Result<(), String> {
+    let file_path = Path::new(&path);
+
+    if !file_path.exists() {
+        return Err("Path does not exist".to_string());
+    }
+
+    let dir_to_open = if file_path.is_file() {
+        file_path.parent().unwrap_or(file_path)
+    } else {
+        file_path
+    };
+
+    #[cfg(target_os = "windows")]
+    {
+        std::process::Command::new("explorer")
+            .arg(dir_to_open)
+            .spawn()
+            .map_err(|e| format!("Failed to open file manager: {}", e))?;
+    }
+
+    #[cfg(target_os = "macos")]
+    {
+        std::process::Command::new("open")
+            .arg(dir_to_open)
+            .spawn()
+            .map_err(|e| format!("Failed to open file manager: {}", e))?;
+    }
+
+    #[cfg(target_os = "linux")]
+    {
+        std::process::Command::new("xdg-open")
+            .arg(dir_to_open)
+            .spawn()
+            .map_err(|e| format!("Failed to open file manager: {}", e))?;
+    }
+
+    Ok(())
+}
+
+#[tauri::command]
+fn run_file(path: String) -> Result<(), String> {
+    let file_path = Path::new(&path);
+
+    if !file_path.exists() {
+        return Err("File does not exist".to_string());
+    }
+
+    if !file_path.is_file() {
+        return Err("Path is not a file".to_string());
+    }
+
+    #[cfg(target_os = "windows")]
+    {
+        std::process::Command::new("cmd")
+            .args(&["/C", "start", "", &path])
+            .spawn()
+            .map_err(|e| format!("Failed to run file: {}", e))?;
+    }
+
+    #[cfg(target_os = "macos")]
+    {
+        std::process::Command::new("open")
+            .arg(file_path)
+            .spawn()
+            .map_err(|e| format!("Failed to run file: {}", e))?;
+    }
+
+    #[cfg(target_os = "linux")]
+    {
+        std::process::Command::new("xdg-open")
+            .arg(file_path)
+            .spawn()
+            .map_err(|e| format!("Failed to run file: {}", e))?;
+    }
+
+    Ok(())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -255,6 +335,8 @@ pub fn run() {
             create_directory,
             get_file_metadata,
             is_binary_file,
+            open_in_file_manager,
+            run_file,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -126,6 +126,12 @@ export default function App() {
     }
   }, []);
 
+  const refreshDirectory = useCallback(() => {
+    if (currentDir) {
+      readDirectory(currentDir);
+    }
+  }, [currentDir, readDirectory]);
+
   const handleSaveFile = useCallback(async () => {
     if (!currentFile) {
       console.error("No file to save");
@@ -317,6 +323,7 @@ export default function App() {
           handleFileClick={handleFileClick}
           handleOpenFolder={handleOpenFolder}
           selectedDir={selectedDir}
+          refreshDirectory={refreshDirectory}
         />
 
         <div className="main-editor">
