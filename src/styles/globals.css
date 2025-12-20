@@ -59,7 +59,6 @@ html,
     color: #9ca2af;
     border: 1px solid #464b57;
     padding: 6px 12px;
-    border-radius: 4px;
     cursor: pointer;
     margin: 12px 12px 8px 12px;
     font-size: 13px;
@@ -269,31 +268,4 @@ html,
 .media-preview video {
     border: 1px solid #464b57;
     border-radius: 4px;
-}
-
-.settings-info {
-    background-color: rgba(70, 75, 87, 0.2);
-    border: 1px solid #464b57;
-    border-radius: 8px;
-    padding: 20px;
-    margin: 20px 0;
-    max-width: 500px;
-}
-
-.settings-info p {
-    margin: 8px 0;
-    font-size: 14px;
-    color: #cbcfd4;
-}
-
-.settings-info strong {
-    color: #9ca2af;
-    font-weight: 500;
-    margin-right: 8px;
-}
-
-.settings-actions {
-    display: flex;
-    gap: 12px;
-    margin-top: 24px;
 }
