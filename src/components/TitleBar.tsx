@@ -1,21 +1,12 @@
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import React from "react";
 
-interface FileEntry {
-  name: string;
-  path: string;
-  is_directory: boolean;
-  size: number;
-}
-
 interface TitleBarProps {
-  fileList: FileEntry[];
   handleOpenFolder: () => void;
   selectedDir: string;
 }
 
 const TitleBar: React.FC<TitleBarProps> = ({
-  fileList,
   handleOpenFolder,
   selectedDir,
 }) => {
@@ -46,7 +37,7 @@ const TitleBar: React.FC<TitleBarProps> = ({
         </div>
       </div>
 
-      {fileList.length > 0 && (
+      {selectedDir != "null" && (
         <button className="titlebar-open-folder-btn" onClick={handleOpenFolder}>
           {selectedDir}
         </button>

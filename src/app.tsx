@@ -38,7 +38,7 @@ export default function App() {
   const [mediaURL, setMediaURL] = useState<string | null>(null);
   const contentRef = useRef<string>("");
   const isDirtyRef = useRef<boolean>(false);
-  const [selectedDir, setSelectedDir] = useState<string>("");
+  const [selectedDir, setSelectedDir] = useState<string>("null");
 
   const defineCustomTheme = (monaco: typeof import("monaco-editor")) => {
     monaco.editor.defineTheme("xd-dark", {
@@ -308,11 +308,7 @@ export default function App() {
 
   return (
     <>
-      <TitleBar
-        fileList={fileList}
-        handleOpenFolder={handleOpenFolder}
-        selectedDir={selectedDir}
-      />
+      <TitleBar handleOpenFolder={handleOpenFolder} selectedDir={selectedDir} />
       <div className="editor-container">
         <Sidebar
           fileList={fileList}
@@ -320,6 +316,7 @@ export default function App() {
           goBackDirectory={goBackDirectory}
           handleFileClick={handleFileClick}
           handleOpenFolder={handleOpenFolder}
+          selectedDir={selectedDir}
         />
 
         <div className="main-editor">

@@ -14,6 +14,7 @@ interface SidebarProps {
   goBackDirectory: () => void;
   handleFileClick: (entry: FileEntry) => void;
   handleOpenFolder: () => void;
+  selectedDir: string;
 }
 
 const Sidebar: React.FC<SidebarProps> = ({
@@ -22,6 +23,7 @@ const Sidebar: React.FC<SidebarProps> = ({
   goBackDirectory,
   handleFileClick,
   handleOpenFolder,
+  selectedDir,
 }) => {
   const fileItems = useMemo(() => {
     const items = [];
@@ -66,7 +68,7 @@ const Sidebar: React.FC<SidebarProps> = ({
 
   return (
     <div className="sidebar">
-      {fileList.length === 0 && (
+      {selectedDir === "null" && (
         <button className="open-folder-btn" onClick={handleOpenFolder}>
           Open Folder
         </button>
