@@ -40,6 +40,10 @@ export default function App() {
         "editor.lineHighlightBorder": "#FFFFFF00",
         "editor.lineHighlightBackground": "#2d323b",
 
+        // Line Numbers
+        "editorLineNumber.foreground": "#4e5a5f",
+        "editorLineNumber.activeForeground": "#d0d4da",
+
         // Selection
         "editor.selectionBackground": "#3a4a5e",
         "editor.inactiveSelectionBackground": "#3a4a5e80",
