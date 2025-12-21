@@ -38,7 +38,7 @@
 1. Clone the repository:
 
    ```bash
-   git clone https://github.com/XDPXI/XDs-Code.git -b web
+   git clone https://github.com/XDPXI/XDs-Code.git -b 0.6
    ```
 
 2. Navigate to the project directory:
