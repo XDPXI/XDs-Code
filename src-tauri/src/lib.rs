@@ -42,43 +42,34 @@ fn read_directory(path: String, state: State<AppState>) -> Result<DirectoryConte
         return Err("Path is not a directory".to_string());
     }
 
-    // Update current directory in state
     *state.current_dir.lock().unwrap() = Some(dir_path.to_path_buf());
 
-    let mut entries = Vec::new();
-
-    match fs::read_dir(dir_path) {
-        Ok(dir_entries) => {
-            for entry in dir_entries {
-                if let Ok(entry) = entry {
-                    let path = entry.path();
-                    let metadata = entry.metadata().ok();
-
-                    let file_entry = FileEntry {
-                        name: entry.file_name().to_string_lossy().to_string(),
-                        path: path.to_string_lossy().to_string(),
-                        is_directory: path.is_dir(),
-                        size: metadata.map(|m| m.len()).unwrap_or(0),
-                    };
-
-                    entries.push(file_entry);
+    let mut entries: Vec<FileEntry> = fs::read_dir(dir_path)
+        .map_err(|e| format!("Failed to read directory: {}", e))?
+        .filter_map(|entry| {
+            entry.ok().map(|e| {
+                let path = e.path();
+                FileEntry {
+                    name: e.file_name().to_string_lossy().into_owned(),
+                    path: path.to_string_lossy().into_owned(),
+                    is_directory: path.is_dir(),
+                    size: e.metadata().ok().map(|m| m.len()).unwrap_or(0),
                 }
-            }
-
-            // Sort: directories first, then files
-            entries.sort_by(|a, b| match (a.is_directory, b.is_directory) {
-                (true, false) => std::cmp::Ordering::Less,
-                (false, true) => std::cmp::Ordering::Greater,
-                _ => a.name.to_lowercase().cmp(&b.name.to_lowercase()),
-            });
-
-            Ok(DirectoryContents {
-                entries,
-                current_path: path.clone(),
             })
-        }
-        Err(e) => Err(format!("Failed to read directory: {}", e)),
-    }
+        })
+        .collect();
+
+    // Sort: directories first, then files
+    entries.sort_unstable_by(|a, b| match (a.is_directory, b.is_directory) {
+        (true, false) => std::cmp::Ordering::Less,
+        (false, true) => std::cmp::Ordering::Greater,
+        _ => a.name.to_lowercase().cmp(&b.name.to_lowercase()),
+    });
+
+    Ok(DirectoryContents {
+        entries,
+        current_path: path,
+    })
 }
 
 #[tauri::command]
@@ -93,34 +84,27 @@ fn read_file(path: String) -> Result<String, String> {
         return Err("Path is not a file".to_string());
     }
 
-    // Check file size (limit to 10MB for safety)
+    const MAX_FILE_SIZE: u64 = 10 * 1024 * 1024; // 10MB
     if let Ok(metadata) = fs::metadata(file_path) {
-        if metadata.len() > 10 * 1024 * 1024 {
+        if metadata.len() > MAX_FILE_SIZE {
             return Err("File too large (>10MB)".to_string());
         }
     }
 
-    match fs::read_to_string(file_path) {
-        Ok(contents) => Ok(contents),
-        Err(e) => Err(format!("Failed to read file: {}", e)),
-    }
+    fs::read_to_string(file_path).map_err(|e| format!("Failed to read file: {}", e))
 }
 
 #[tauri::command]
 fn write_file(path: String, content: String) -> Result<(), String> {
     let file_path = Path::new(&path);
 
-    // Ensure parent directory exists
     if let Some(parent) = file_path.parent() {
         if !parent.exists() {
             return Err("Parent directory does not exist".to_string());
         }
     }
 
-    match fs::write(file_path, content) {
-        Ok(_) => Ok(()),
-        Err(e) => Err(format!("Failed to write file: {}", e)),
-    }
+    fs::write(file_path, content).map_err(|e| format!("Failed to write file: {}", e))
 }
 
 #[tauri::command]
@@ -131,10 +115,7 @@ fn create_file(path: String) -> Result<(), String> {
         return Err("File already exists".to_string());
     }
 
-    match fs::write(file_path, "") {
-        Ok(_) => Ok(()),
-        Err(e) => Err(format!("Failed to create file: {}", e)),
-    }
+    fs::write(file_path, "").map_err(|e| format!("Failed to create file: {}", e))
 }
 
 #[tauri::command]
@@ -146,16 +127,11 @@ fn delete_file(path: String) -> Result<(), String> {
     }
 
     if file_path.is_dir() {
-        match fs::remove_dir_all(file_path) {
-            Ok(_) => Ok(()),
-            Err(e) => Err(format!("Failed to delete directory: {}", e)),
-        }
+        fs::remove_dir_all(file_path)
     } else {
-        match fs::remove_file(file_path) {
-            Ok(_) => Ok(()),
-            Err(e) => Err(format!("Failed to delete file: {}", e)),
-        }
+        fs::remove_file(file_path)
     }
+    .map_err(|e| format!("Failed to delete: {}", e))
 }
 
 #[tauri::command]
@@ -171,10 +147,7 @@ fn rename_file(old_path: String, new_path: String) -> Result<(), String> {
         return Err("Destination file already exists".to_string());
     }
 
-    match fs::rename(old_file_path, new_file_path) {
-        Ok(_) => Ok(()),
-        Err(e) => Err(format!("Failed to rename file: {}", e)),
-    }
+    fs::rename(old_file_path, new_file_path).map_err(|e| format!("Failed to rename file: {}", e))
 }
 
 #[tauri::command]
@@ -185,10 +158,7 @@ fn create_directory(path: String) -> Result<(), String> {
         return Err("Directory already exists".to_string());
     }
 
-    match fs::create_dir_all(dir_path) {
-        Ok(_) => Ok(()),
-        Err(e) => Err(format!("Failed to create directory: {}", e)),
-    }
+    fs::create_dir_all(dir_path).map_err(|e| format!("Failed to create directory: {}", e))
 }
 
 #[tauri::command]
@@ -199,18 +169,18 @@ fn get_file_metadata(path: String) -> Result<FileEntry, String> {
         return Err("File does not exist".to_string());
     }
 
-    match fs::metadata(file_path) {
-        Ok(metadata) => Ok(FileEntry {
-            name: file_path
-                .file_name()
-                .map(|n| n.to_string_lossy().to_string())
-                .unwrap_or_default(),
-            path: path.clone(),
-            is_directory: metadata.is_dir(),
-            size: metadata.len(),
-        }),
-        Err(e) => Err(format!("Failed to get file metadata: {}", e)),
-    }
+    let metadata =
+        fs::metadata(file_path).map_err(|e| format!("Failed to get file metadata: {}", e))?;
+
+    Ok(FileEntry {
+        name: file_path
+            .file_name()
+            .map(|n| n.to_string_lossy().into_owned())
+            .unwrap_or_default(),
+        path,
+        is_directory: metadata.is_dir(),
+        size: metadata.len(),
+    })
 }
 
 #[tauri::command]
@@ -221,27 +191,24 @@ fn is_binary_file(path: String) -> Result<bool, String> {
         return Err("Path is not a file".to_string());
     }
 
-    // Read first 512 bytes to check for binary content
-    match fs::read(file_path) {
-        Ok(bytes) => {
-            let sample_size = std::cmp::min(512, bytes.len());
-            let sample = &bytes[..sample_size];
+    const SAMPLE_SIZE: usize = 512;
+    let bytes = fs::read(file_path).map_err(|e| format!("Failed to read file: {}", e))?;
 
-            // Check for null bytes or high proportion of non-printable characters
-            let has_null = sample.contains(&0);
-            if has_null {
-                return Ok(true);
-            }
+    let sample_size = std::cmp::min(SAMPLE_SIZE, bytes.len());
+    let sample = &bytes[..sample_size];
 
-            let non_printable = sample
-                .iter()
-                .filter(|&&b| b < 7 || (b > 13 && b < 32))
-                .count();
-
-            Ok(non_printable as f32 / sample_size as f32 > 0.3)
-        }
-        Err(e) => Err(format!("Failed to read file: {}", e)),
+    // Check for null bytes
+    if sample.contains(&0) {
+        return Ok(true);
     }
+
+    // Check proportion of non-printable characters
+    let non_printable = sample
+        .iter()
+        .filter(|&&b| b < 7 || (b > 13 && b < 32))
+        .count();
+
+    Ok((non_printable as f32 / sample_size as f32) > 0.3)
 }
 
 #[tauri::command]
@@ -259,28 +226,22 @@ fn open_in_file_manager(path: String) -> Result<(), String> {
     };
 
     #[cfg(target_os = "windows")]
-    {
-        std::process::Command::new("explorer")
-            .arg(dir_to_open)
-            .spawn()
-            .map_err(|e| format!("Failed to open file manager: {}", e))?;
-    }
+    Command::new("explorer")
+        .arg(dir_to_open)
+        .spawn()
+        .map_err(|e| format!("Failed to open file manager: {}", e))?;
 
     #[cfg(target_os = "macos")]
-    {
-        std::process::Command::new("open")
-            .arg(dir_to_open)
-            .spawn()
-            .map_err(|e| format!("Failed to open file manager: {}", e))?;
-    }
+    Command::new("open")
+        .arg(dir_to_open)
+        .spawn()
+        .map_err(|e| format!("Failed to open file manager: {}", e))?;
 
     #[cfg(target_os = "linux")]
-    {
-        std::process::Command::new("xdg-open")
-            .arg(dir_to_open)
-            .spawn()
-            .map_err(|e| format!("Failed to open file manager: {}", e))?;
-    }
+    Command::new("xdg-open")
+        .arg(dir_to_open)
+        .spawn()
+        .map_err(|e| format!("Failed to open file manager: {}", e))?;
 
     Ok(())
 }
@@ -298,28 +259,22 @@ fn run_file(path: String) -> Result<(), String> {
     }
 
     #[cfg(target_os = "windows")]
-    {
-        std::process::Command::new("cmd")
-            .args(&["/C", "start", "", &path])
-            .spawn()
-            .map_err(|e| format!("Failed to run file: {}", e))?;
-    }
+    Command::new("cmd")
+        .args(&["/C", "start", "", &path])
+        .spawn()
+        .map_err(|e| format!("Failed to run file: {}", e))?;
 
     #[cfg(target_os = "macos")]
-    {
-        std::process::Command::new("open")
-            .arg(file_path)
-            .spawn()
-            .map_err(|e| format!("Failed to run file: {}", e))?;
-    }
+    Command::new("open")
+        .arg(file_path)
+        .spawn()
+        .map_err(|e| format!("Failed to run file: {}", e))?;
 
     #[cfg(target_os = "linux")]
-    {
-        std::process::Command::new("xdg-open")
-            .arg(file_path)
-            .spawn()
-            .map_err(|e| format!("Failed to run file: {}", e))?;
-    }
+    Command::new("xdg-open")
+        .arg(file_path)
+        .spawn()
+        .map_err(|e| format!("Failed to run file: {}", e))?;
 
     Ok(())
 }
@@ -333,9 +288,9 @@ fn execute_terminal_command(
 ) -> Result<(), String> {
     let working_dir = cwd.unwrap_or_else(|| {
         std::env::current_dir()
-            .unwrap()
+            .unwrap_or_default()
             .to_string_lossy()
-            .to_string()
+            .into_owned()
     });
 
     #[cfg(target_os = "windows")]
@@ -396,11 +351,9 @@ fn execute_terminal_command(
     thread::spawn(move || loop {
         std::thread::sleep(std::time::Duration::from_millis(100));
 
-        if let Ok(process) = current_process.lock() {
-            if process.is_none() {
-                let _ = app_finish.emit("command-finished", "");
-                return;
-            }
+        if current_process.lock().unwrap().is_none() {
+            let _ = app_finish.emit("command-finished", "");
+            break;
         }
     });
 
@@ -414,31 +367,24 @@ fn stop_terminal_command(state: State<AppState>) -> Result<(), String> {
     if let Some(mut child) = process.take() {
         #[cfg(target_os = "windows")]
         {
-            match std::process::Command::new("taskkill")
+            std::process::Command::new("taskkill")
                 .args(&["/PID", &child.id().to_string(), "/T", "/F"])
                 .output()
-            {
-                Ok(_) => {
-                    let _ = child.kill();
-                    Ok(())
-                }
-                Err(e) => Err(format!("Failed to kill process: {}", e)),
-            }
+                .map_err(|e| format!("Failed to kill process: {}", e))?;
+            let _ = child.kill();
         }
 
         #[cfg(not(target_os = "windows"))]
         {
-            match nix::sys::signal::kill(
-                nix::unistd::Pid::from_raw(child.id() as i32),
-                nix::sys::signal::Signal::SIGTERM,
-            ) {
-                Ok(_) => {
-                    let _ = child.kill();
-                    Ok(())
-                }
-                Err(e) => Err(format!("Failed to kill process: {}", e)),
-            }
+            use nix::sys::signal::{kill, Signal};
+            use nix::unistd::Pid;
+
+            kill(Pid::from_raw(child.id() as i32), Signal::SIGTERM)
+                .map_err(|e| format!("Failed to kill process: {}", e))?;
+            let _ = child.kill();
         }
+
+        Ok(())
     } else {
         Err("No process running".to_string())
     }
