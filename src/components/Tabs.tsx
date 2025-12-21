@@ -14,7 +14,7 @@ const Tabs: React.FC<TabsProps> = ({
   closeTab,
 }) => {
   return (
-    <div className="tabs">
+    <div className="tabs" data-tauri-drag-region>
       {openTabs.map((tab) => (
         <button
           key={tab.path}

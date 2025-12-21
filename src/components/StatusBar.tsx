@@ -14,7 +14,7 @@ const StatusBar: React.FC<StatusBarProps> = ({
   projectStructureOpen,
 }) => {
   return (
-    <div className="statusbar">
+    <div className="statusbar" data-tauri-drag-region>
       <div className="statusbar-left">
         <button
           className={`statusbar-button ${projectStructureOpen ? "active" : ""}`}
