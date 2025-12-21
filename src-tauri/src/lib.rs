@@ -2,10 +2,13 @@ use serde::{Deserialize, Serialize};
 use std::fs;
 use std::io::{BufRead, BufReader};
 use std::path::{Path, PathBuf};
-use std::process::{Command, Stdio};
+use std::process::{Child, Command, Stdio};
 use std::sync::Mutex;
 use std::thread;
 use tauri::{AppHandle, Emitter, State};
+
+#[cfg(target_os = "windows")]
+use std::os::windows::process::CommandExt;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct FileEntry {
@@ -21,9 +24,10 @@ pub struct DirectoryContents {
     current_path: String,
 }
 
-// State to track current working directory
+#[derive(Clone)]
 pub struct AppState {
-    current_dir: Mutex<Option<PathBuf>>,
+    current_dir: std::sync::Arc<Mutex<Option<PathBuf>>>,
+    current_process: std::sync::Arc<Mutex<Option<Child>>>,
 }
 
 #[tauri::command]
@@ -325,6 +329,7 @@ fn execute_terminal_command(
     app: AppHandle,
     command: String,
     cwd: Option<String>,
+    state: State<AppState>,
 ) -> Result<(), String> {
     let working_dir = cwd.unwrap_or_else(|| {
         std::env::current_dir()
@@ -334,12 +339,13 @@ fn execute_terminal_command(
     });
 
     #[cfg(target_os = "windows")]
-    let mut child = Command::new("pwsh")
+    let mut child = Command::new("powershell")
         .arg("-Command")
         .arg(&command)
         .current_dir(&working_dir)
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
+        .creation_flags(0x08000000)
         .spawn()
         .map_err(|e| format!("Failed to spawn process: {}", e))?;
 
@@ -365,9 +371,13 @@ fn execute_terminal_command(
 
     let stdout = child.stdout.take().unwrap();
     let stderr = child.stderr.take().unwrap();
+
+    *state.current_process.lock().unwrap() = Some(child);
+
     let app_stdout = app.clone();
     let app_stderr = app.clone();
     let app_finish = app.clone();
+    let current_process = state.current_process.clone();
 
     thread::spawn(move || {
         let reader = BufReader::new(stdout);
@@ -383,12 +393,55 @@ fn execute_terminal_command(
         }
     });
 
-    thread::spawn(move || {
-        let _ = child.wait();
-        let _ = app_finish.emit("command-finished", "");
+    thread::spawn(move || loop {
+        std::thread::sleep(std::time::Duration::from_millis(100));
+
+        if let Ok(process) = current_process.lock() {
+            if process.is_none() {
+                let _ = app_finish.emit("command-finished", "");
+                return;
+            }
+        }
     });
 
     Ok(())
+}
+
+#[tauri::command]
+fn stop_terminal_command(state: State<AppState>) -> Result<(), String> {
+    let mut process = state.current_process.lock().unwrap();
+
+    if let Some(mut child) = process.take() {
+        #[cfg(target_os = "windows")]
+        {
+            match std::process::Command::new("taskkill")
+                .args(&["/PID", &child.id().to_string(), "/T", "/F"])
+                .output()
+            {
+                Ok(_) => {
+                    let _ = child.kill();
+                    Ok(())
+                }
+                Err(e) => Err(format!("Failed to kill process: {}", e)),
+            }
+        }
+
+        #[cfg(not(target_os = "windows"))]
+        {
+            match nix::sys::signal::kill(
+                nix::unistd::Pid::from_raw(child.id() as i32),
+                nix::sys::signal::Signal::SIGTERM,
+            ) {
+                Ok(_) => {
+                    let _ = child.kill();
+                    Ok(())
+                }
+                Err(e) => Err(format!("Failed to kill process: {}", e)),
+            }
+        }
+    } else {
+        Err("No process running".to_string())
+    }
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -397,7 +450,8 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
         .manage(AppState {
-            current_dir: Mutex::new(None),
+            current_dir: std::sync::Arc::new(Mutex::new(None)),
+            current_process: std::sync::Arc::new(Mutex::new(None)),
         })
         .invoke_handler(tauri::generate_handler![
             read_directory,
@@ -412,6 +466,7 @@ pub fn run() {
             open_in_file_manager,
             run_file,
             execute_terminal_command,
+            stop_terminal_command,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

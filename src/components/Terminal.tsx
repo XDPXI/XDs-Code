@@ -8,9 +8,10 @@ import "xterm/css/xterm.css";
 
 interface TerminalProps {
   currentDir: string;
+  onCtrlC?: () => void;
 }
 
-const Terminal: React.FC<TerminalProps> = ({ currentDir }) => {
+const Terminal: React.FC<TerminalProps> = ({ currentDir, onCtrlC }) => {
   const terminalRef = useRef<HTMLDivElement>(null);
   const xtermRef = useRef<XTerm | null>(null);
   const fitAddonRef = useRef<FitAddon | null>(null);
@@ -63,9 +64,26 @@ const Terminal: React.FC<TerminalProps> = ({ currentDir }) => {
 
     // handle input
     xterm.onData((data) => {
-      if (busy) return; // ignore input while busy
-
       const code = data.charCodeAt(0);
+
+      // Ctrl+C
+      if (code === 3) {
+        if (busy) {
+          xterm.write("^C\r\n");
+          setBusy(false);
+          xterm.write("$ ");
+          commandBufferRef.current = "";
+
+          if (onCtrlC) {
+            onCtrlC();
+          }
+        } else {
+          xterm.write("^C\r\n$ ");
+        }
+        return;
+      }
+
+      if (busy) return;
 
       // Enter
       if (code === 13) {
@@ -77,6 +95,12 @@ const Terminal: React.FC<TerminalProps> = ({ currentDir }) => {
           invoke("execute_terminal_command", {
             command,
             cwd: currentDir || undefined,
+          }).catch((err) => {
+            console.error("Execute command error:", err);
+            xterm.write(`\x1b[31mError: ${err}\x1b[0m\r\n`);
+            setBusy(false);
+            xterm.write("$ ");
+            commandBufferRef.current = "";
           });
         } else {
           xterm.write("$ ");

@@ -240,6 +240,12 @@ export default function App() {
     }
   }, [dirStack, readDirectory]);
 
+  const handleCtrlC = useCallback(() => {
+    invoke("stop_terminal_command").catch((err) => {
+      console.error("Stop command error:", err);
+    });
+  }, []);
+
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === "s") {
@@ -338,7 +344,7 @@ export default function App() {
             </div>
             {terminalOpen && (
               <div className="terminal-pane">
-                <Terminal currentDir={currentDir} />
+                <Terminal currentDir={currentDir} onCtrlC={handleCtrlC} />
               </div>
             )}
           </div>
