@@ -472,7 +472,10 @@ html,
 
 .statusbar-button:hover {
     color: #cbcfd4;
-    background-color: rgba(70, 75, 87, 0.3);
+}
+
+.statusbar-button.active {
+    color: #74ade8;
 }
 
 .statusbar-text {
