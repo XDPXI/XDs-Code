@@ -233,9 +233,8 @@ export const getFileIcon = (filename: string): string => {
     case "avif":
     case "heic":
     case "heif":
-      return "fa-regular fa-image";
     case "svg":
-      return "fa-solid fa-vector-square";
+      return "fa-regular fa-image";
     case "ico":
     case "icns":
       return "fa-solid fa-icons";
