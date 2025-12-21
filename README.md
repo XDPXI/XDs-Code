@@ -5,18 +5,6 @@
 
 ---
 
-## Star History
-
-<a href="https://www.star-history.com/#xdpxi/xds-code&Timeline">
- <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=xdpxi/xds-code&type=Timeline&theme=dark" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=xdpxi/xds-code&type=Timeline" />
-   <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=xdpxi/xds-code&type=Timeline" />
- </picture>
-</a>
-
----
-
 ## Building from Source
 
 ### Application
@@ -24,7 +12,7 @@
 1. Clone the repository:
 
    ```bash
-   git clone https://github.com/XDPXI/XDs-Code.git
+   git clone https://github.com/XDPXI/XDs-Code.git -b main
    ```
 
 2. Navigate to the project directory:
@@ -42,7 +30,7 @@
 4. Build the project:
 
    ```bash
-   bun run build:app
+   bun run build
    ```
 
 ### Website
@@ -50,7 +38,7 @@
 1. Clone the repository:
 
    ```bash
-   git clone https://github.com/XDPXI/XDs-Code.git
+   git clone https://github.com/XDPXI/XDs-Code.git -b web
    ```
 
 2. Navigate to the project directory:
