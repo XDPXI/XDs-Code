@@ -4,7 +4,7 @@
   "version": "0.7.1",
   "identifier": "dev.xdpxi.xds-code",
   "build": {
-    "beforeDevCommand": "vite --port 6382",
+    "beforeDevCommand": "vite",
     "devUrl": "http://localhost:6382",
     "beforeBuildCommand": "tsc && vite build",
     "frontendDist": "../dist"
