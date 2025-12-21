@@ -329,9 +329,12 @@ export default function App() {
               closeTab={closeTab}
             />
             <div className="editor-terminal-container">
-              <div className={`editor ${terminalOpen ? "split" : ""}`}>
-                {currentFile !== null && (
-                  mediaURL ? (
+              <div
+                className={`editor ${terminalOpen ? "split" : ""}`}
+                data-tauri-drag-region
+              >
+                {currentFile !== null &&
+                  (mediaURL ? (
                     <MediaPreview
                       mediaURL={mediaURL}
                       currentFile={currentFile}
@@ -345,8 +348,7 @@ export default function App() {
                       isDirtyRef={isDirtyRef}
                       defineCustomTheme={defineCustomTheme}
                     />
-                  )
-                )}
+                  ))}
               </div>
               {terminalOpen && (
                 <div className="terminal-pane">

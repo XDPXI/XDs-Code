@@ -219,7 +219,9 @@ const Sidebar: React.FC<SidebarProps> = ({
           Open Folder
         </button>
       )}
-      <div className="file-list">{fileItems}</div>
+      <div data-tauri-drag-region className="file-list">
+        {fileItems}
+      </div>
 
       {contextMenu && (
         <div
