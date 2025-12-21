@@ -37,31 +37,12 @@ export default function App() {
         "editorGutter.background": "#282c33",
 
         // Line Highlight
-        "editor.lineHighlightBorder": "#464b57",
-        "editor.lineHighlightBackground": "#464b5715",
+        "editor.lineHighlightBorder": "#FFFFFF00",
+        "editor.lineHighlightBackground": "#2d323b",
 
         // Selection
         "editor.selectionBackground": "#3a4a5e",
         "editor.inactiveSelectionBackground": "#3a4a5e80",
-      },
-    });
-
-    monaco.editor.defineTheme("xd-light", {
-      base: "vs",
-      inherit: true,
-      rules: [],
-      colors: {
-        // Background
-        "editor.background": "#fafafa",
-        "editorGutter.background": "#fafafa",
-
-        // Line Highlight
-        "editor.lineHighlightBorder": "#d0d0d0",
-        "editor.lineHighlightBackground": "#d0d0d015",
-
-        // Selection
-        "editor.selectionBackground": "#d4dbf4",
-        "editor.inactiveSelectionBackground": "#d4dbf480",
       },
     });
   };
