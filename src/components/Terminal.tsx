@@ -101,8 +101,7 @@ const Terminal: React.FC<TerminalProps> = ({ currentDir, onCtrlC }) => {
   }, []);
 
   const displayPrompt = () => {
-    const cwdLabel =
-      currentDir && currentDir !== "null" ? currentDir : "~";
+    const cwdLabel = currentDir && currentDir !== "null" ? currentDir : "~";
     xtermRef.current?.write(`\x1b[32m${cwdLabel}\x1b[0m \x1b[36m$\x1b[0m `);
   };
 

@@ -8,7 +8,6 @@ Thumbs.db
 
 # Rust and Cargo
 /target
-Cargo.lock
 /out
 
 # Node.js and pnpm/npm
