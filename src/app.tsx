@@ -47,6 +47,13 @@ export default function App() {
         // Selection
         "editor.selectionBackground": "#3a4a5e",
         "editor.inactiveSelectionBackground": "#3a4a5e80",
+
+        // Cursor
+        "editorCursor.foreground": "#74ade8",
+
+        // Other UI
+        "editorIndentGuide.background": "#3f4247",
+        "editorIndentGuide.activeBackground": "#4e5054",
       },
     });
   };
