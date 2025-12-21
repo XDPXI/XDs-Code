@@ -5198,7 +5198,7 @@ dependencies = [
 
 [[package]]
 name = "xds-code"
-version = "0.7.1"
+version = "0.7.2"
 dependencies = [
  "nix 0.28.0",
  "serde",

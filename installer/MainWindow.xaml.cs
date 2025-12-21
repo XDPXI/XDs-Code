@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
@@ -58,14 +58,14 @@ namespace Installer
 
         private const string AppExeName = "xds-code.exe";
         private const string AppDisplayName = "XD's Code";
-        private const string AppVersion = "0.7.1";
+        private const string AppVersion = "0.7.2";
         private const string ShortcutName = AppDisplayName + ".lnk";
 
         private const string RegistryUninstallKey =
             @"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\" + AppDisplayName;
 
         private const string DownloadUrl =
-            "https://raw.githubusercontent.com/XDPXI/XDs-Code/main/installer/releases/0.7.1.zip";
+            "https://raw.githubusercontent.com/XDPXI/XDs-Code/main/installer/releases/0.7.2.zip";
 
         #endregion
 
