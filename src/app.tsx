@@ -320,44 +320,53 @@ export default function App() {
           />
         )}
 
-        <div className="editor-area">
-          <Tabs
-            openTabs={openTabs}
-            currentFile={currentFile}
-            handleTabClick={handleTabClick}
-            closeTab={closeTab}
-          />
-          <div className="editor-terminal-container">
-            <div className={`editor ${terminalOpen ? "split" : ""}`}>
-              {mediaURL ? (
-                <MediaPreview mediaURL={mediaURL} currentFile={currentFile} />
-              ) : (
-                <EditorWrapper
-                  currentFile={currentFile}
-                  fileContent={fileContent}
-                  contentRef={contentRef}
-                  setFileContent={setFileContent}
-                  isDirtyRef={isDirtyRef}
-                  defineCustomTheme={defineCustomTheme}
-                />
+        {selectedDir !== "null" && (
+          <div className="editor-area">
+            <Tabs
+              openTabs={openTabs}
+              currentFile={currentFile}
+              handleTabClick={handleTabClick}
+              closeTab={closeTab}
+            />
+            <div className="editor-terminal-container">
+              <div className={`editor ${terminalOpen ? "split" : ""}`}>
+                {currentFile !== null && (
+                  mediaURL ? (
+                    <MediaPreview
+                      mediaURL={mediaURL}
+                      currentFile={currentFile}
+                    />
+                  ) : (
+                    <EditorWrapper
+                      currentFile={currentFile}
+                      fileContent={fileContent}
+                      contentRef={contentRef}
+                      setFileContent={setFileContent}
+                      isDirtyRef={isDirtyRef}
+                      defineCustomTheme={defineCustomTheme}
+                    />
+                  )
+                )}
+              </div>
+              {terminalOpen && (
+                <div className="terminal-pane">
+                  <Terminal currentDir={currentDir} onCtrlC={handleCtrlC} />
+                </div>
               )}
             </div>
-            {terminalOpen && (
-              <div className="terminal-pane">
-                <Terminal currentDir={currentDir} onCtrlC={handleCtrlC} />
-              </div>
-            )}
           </div>
-        </div>
+        )}
       </div>
-      <StatusBar
-        onTerminalToggle={() => setTerminalOpen((prev) => !prev)}
-        onProjectStructureToggle={() =>
-          setProjectStructureOpen((prev) => !prev)
-        }
-        terminalOpen={terminalOpen}
-        projectStructureOpen={projectStructureOpen}
-      />
+      {selectedDir !== "null" && (
+        <StatusBar
+          onTerminalToggle={() => setTerminalOpen((prev) => !prev)}
+          onProjectStructureToggle={() =>
+            setProjectStructureOpen((prev) => !prev)
+          }
+          terminalOpen={terminalOpen}
+          projectStructureOpen={projectStructureOpen}
+        />
+      )}
     </div>
   );
 }
