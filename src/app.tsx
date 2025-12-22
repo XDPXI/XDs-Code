@@ -307,7 +307,7 @@ export default function App() {
   return (
     <div className="app-container">
       <TitleBar handleOpenFolder={handleOpenFolder} selectedDir={selectedDir} />
-      <div className="content-container">
+      <div className="content-container" data-tauri-drag-region>
         {projectStructureOpen && (
           <Sidebar
             fileList={fileList}
