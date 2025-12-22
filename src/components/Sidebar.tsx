@@ -1,4 +1,10 @@
-import React, { useMemo, useState, useEffect, useRef } from "react";
+import React, {
+  useMemo,
+  useState,
+  useEffect,
+  useRef,
+  useCallback,
+} from "react";
 import { getFileIcon } from "../utils/fileHelpers";
 import { invoke } from "@tauri-apps/api/core";
 import { useModal } from "../hooks/useModal";
@@ -60,14 +66,12 @@ const Sidebar: React.FC<SidebarProps> = ({
     e.stopPropagation();
 
     if (!entry) {
-      // Right-click on empty space
       setContextMenu({
         x: e.clientX,
         y: e.clientY,
         type: "empty",
       });
     } else if (entry.is_directory) {
-      // Right-click on folder
       setContextMenu({
         x: e.clientX,
         y: e.clientY,
@@ -75,7 +79,6 @@ const Sidebar: React.FC<SidebarProps> = ({
         entry,
       });
     } else {
-      // Right-click on file
       setContextMenu({
         x: e.clientX,
         y: e.clientY,
@@ -85,11 +88,11 @@ const Sidebar: React.FC<SidebarProps> = ({
     }
   };
 
-  const handleCreateFile = async () => {
-    setContextMenu(null);
+  const handleCreateFile = useCallback(async () => {
     const fileName = await prompt("Enter file name:");
     if (!fileName) return;
 
+    setContextMenu(null);
     try {
       const filePath = `${selectedDir}/${fileName}`;
       await invoke("create_file", { path: filePath });
@@ -97,13 +100,13 @@ const Sidebar: React.FC<SidebarProps> = ({
     } catch (error) {
       alert(`Failed to create file: ${error}`);
     }
-  };
+  }, [selectedDir, prompt, alert, refreshDirectory]);
 
-  const handleCreateFolder = async () => {
-    setContextMenu(null);
+  const handleCreateFolder = useCallback(async () => {
     const folderName = await prompt("Enter folder name:");
     if (!folderName) return;
 
+    setContextMenu(null);
     try {
       const folderPath = `${selectedDir}/${folderName}`;
       await invoke("create_directory", { path: folderPath });
@@ -111,31 +114,40 @@ const Sidebar: React.FC<SidebarProps> = ({
     } catch (error) {
       alert(`Failed to create folder: ${error}`);
     }
-  };
+  }, [selectedDir, prompt, alert, refreshDirectory]);
 
-  const handleOpenInFileManager = async () => {
-    setContextMenu(null);
+  const handleOpenInFileManager = useCallback(async () => {
+    if (!contextMenu?.entry && !selectedDir) {
+      setContextMenu(null);
+      return;
+    }
     const pathToOpen = contextMenu?.entry?.path || selectedDir;
+    setContextMenu(null);
 
     try {
       await invoke("open_in_file_manager", { path: pathToOpen });
     } catch (error) {
       alert(`Failed to open in file manager: ${error}`);
     }
-  };
+  }, [contextMenu, selectedDir, alert]);
 
-  const handleRunFile = async () => {
+  const handleRunFile = useCallback(async () => {
+    if (!contextMenu?.entry) {
+      setContextMenu(null);
+      return;
+    }
+
+    const filePath = contextMenu.entry.path;
     setContextMenu(null);
-    if (!contextMenu?.entry) return;
 
     try {
-      await invoke("run_file", { path: contextMenu.entry.path });
+      await invoke("run_file", { path: filePath });
     } catch (error) {
       alert(`Failed to run file: ${error}`);
     }
-  };
+  }, [contextMenu, alert]);
 
-  const handleDeleteFile = async () => {
+  const handleDeleteFile = useCallback(async () => {
     if (!contextMenu?.entry) {
       setContextMenu(null);
       return;
@@ -150,9 +162,9 @@ const Sidebar: React.FC<SidebarProps> = ({
     } catch (error) {
       alert(`Failed to delete file: ${error}`);
     }
-  };
+  }, [contextMenu, alert, refreshDirectory]);
 
-  const handleDeleteFolder = async () => {
+  const handleDeleteFolder = useCallback(async () => {
     if (!contextMenu?.entry) {
       setContextMenu(null);
       return;
@@ -167,8 +179,9 @@ const Sidebar: React.FC<SidebarProps> = ({
     } catch (error) {
       alert(`Failed to delete folder: ${error}`);
     }
-  };
+  }, [contextMenu, alert, refreshDirectory]);
 
+  // FIX: Memoize file items with stable dependencies
   const fileItems = useMemo(() => {
     const items = [];
 
