@@ -77,49 +77,51 @@ export default function App() {
       if (unsavedFiles.has(filePath)) {
         const result = await confirm(
           "This file has unsaved changes. Do you want to save them?",
-          "No",
-          "Yes",
+          "Cancel",
+          "Save",
         );
 
+        if (!result) {
+          return;
+        }
+
         if (result) {
-          const tab = openTabs.find((t) => t.path === filePath);
-          if (tab) {
-            try {
-              await invoke("write_file", {
-                path: filePath,
-                content: tab.content,
-              });
-              setUnsavedFiles((prev) => {
-                const newSet = new Set(prev);
-                newSet.delete(filePath);
-                return newSet;
-              });
-            } catch (error) {
-              console.error("Failed to save file:", error);
-              await alert(`Failed to save file: ${error}`);
-              return;
-            }
+          try {
+            await invoke("write_file", {
+              path: filePath,
+              content: contentRef.current,
+            });
+            setUnsavedFiles((prev) => {
+              const newSet = new Set(prev);
+              newSet.delete(filePath);
+              return newSet;
+            });
+          } catch (error) {
+            console.error("Failed to save file:", error);
+            await alert(`Failed to save file: ${error}`);
+            return;
           }
+        } else {
+          setUnsavedFiles((prev) => {
+            const newSet = new Set(prev);
+            newSet.delete(filePath);
+            return newSet;
+          });
         }
       }
 
       setOpenTabs((prev) => prev.filter((f) => f.path !== filePath));
+
       if (currentFile === filePath) {
-        setOpenTabs((prev) => {
-          if (prev.length > 0) {
-            const newCurrent = prev.find((f) => f.path !== filePath);
-            if (newCurrent) {
-              setCurrentFile(newCurrent.path);
-              setFileContent(newCurrent.content);
-              contentRef.current = newCurrent.content;
-            }
-          } else {
-            setCurrentFile(null);
-            setFileContent("");
-            contentRef.current = "";
+        setCurrentFile((prev) => {
+          if (prev === filePath) {
+            const remainingTabs = openTabs.filter((t) => t.path !== filePath);
+            return remainingTabs.length > 0 ? remainingTabs[0].path : null;
           }
           return prev;
         });
+        setFileContent("");
+        contentRef.current = "";
       }
     },
     [unsavedFiles, openTabs, currentFile, confirm, alert],
