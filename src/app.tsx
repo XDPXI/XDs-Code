@@ -369,7 +369,7 @@ export default function App() {
                       setFileContent={setFileContent}
                       isDirtyRef={isDirtyRef}
                       defineCustomTheme={defineCustomTheme}
-                      onContentChange={(newContent) => {
+                      onContentChange={() => {
                         isDirtyRef.current = true;
                         if (currentFile && !unsavedFiles.has(currentFile)) {
                           setUnsavedFiles((prev) => {
