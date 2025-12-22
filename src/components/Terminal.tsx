@@ -10,18 +10,20 @@ interface TerminalProps {
   onCtrlC?: () => void;
 }
 
+const MAX_TERMINAL_LINES = 1000;
+
 const Terminal: React.FC<TerminalProps> = ({ currentDir, onCtrlC }) => {
   const terminalRef = useRef<HTMLDivElement>(null);
   const xtermRef = useRef<XTerm | null>(null);
   const fitAddonRef = useRef<FitAddon | null>(null);
   const [busy, setBusy] = useState(false);
-  const commandBufferRef = useRef(""); // keep buffer across renders
+  const commandBufferRef = useRef("");
   const commandHistoryRef = useRef<string[]>([]);
   const historyIndexRef = useRef(-1);
   const unlistenersRef = useRef<Array<() => void>>([]);
+  const lineCountRef = useRef(0);
 
   useEffect(() => {
-    // Initialize terminal only once
     const xterm = new XTerm({
       cursorBlink: true,
       fontFamily: "JetBrains Mono, Fira Code, monospace",
@@ -51,39 +53,30 @@ const Terminal: React.FC<TerminalProps> = ({ currentDir, onCtrlC }) => {
     xtermRef.current = xterm;
     fitAddonRef.current = fitAddon;
 
-    // initial prompt
     displayPrompt();
 
-    const handleOutputEvent = async (event: any) => {
-      xterm.writeln(event.payload);
+    let mounted = true;
+
+    const setupListeners = async () => {
+      const unlisteners = await Promise.all([
+        listen<string>("terminal-output", handleOutputEvent),
+        listen<string>("terminal-error", handleErrorEvent),
+        listen("command-finished", handleFinishEvent),
+      ]);
+
+      if (mounted) {
+        unlistenersRef.current = unlisteners;
+      } else {
+        unlisteners.forEach((u) => u());
+      }
     };
 
-    const handleErrorEvent = async (event: any) => {
-      xterm.writeln(`\x1b[31m${event.payload}\x1b[0m`);
-    };
+    setupListeners();
 
-    const handleFinishEvent = async () => {
-      setBusy(false);
-      commandBufferRef.current = "";
-      historyIndexRef.current = -1;
-      displayPrompt();
-    };
-
-    // Listen to events
-    Promise.all([
-      listen<string>("terminal-output", handleOutputEvent),
-      listen<string>("terminal-error", handleErrorEvent),
-      listen("command-finished", handleFinishEvent),
-    ]).then((unlisteners) => {
-      unlistenersRef.current = unlisteners;
-    });
-
-    // Handle input
     xterm.onData((data) => {
       handleTerminalInput(data, xterm);
     });
 
-    // Handle terminal resize
     const resizeObserver = new ResizeObserver(() => {
       try {
         fitAddon.fit();
@@ -94,6 +87,7 @@ const Terminal: React.FC<TerminalProps> = ({ currentDir, onCtrlC }) => {
     resizeObserver.observe(terminalRef.current!);
 
     return () => {
+      mounted = false;
       resizeObserver.disconnect();
       xterm.dispose();
       unlistenersRef.current.forEach((unlisten) => unlisten());
@@ -103,6 +97,41 @@ const Terminal: React.FC<TerminalProps> = ({ currentDir, onCtrlC }) => {
   const displayPrompt = () => {
     const cwdLabel = currentDir && currentDir !== "null" ? currentDir : "~";
     xtermRef.current?.write(`\x1b[32m${cwdLabel}\x1b[0m \x1b[36m$\x1b[0m `);
+  };
+
+  const handleOutputEvent = (event: any) => {
+    const xterm = xtermRef.current;
+    if (!xterm) return;
+
+    xterm.writeln(event.payload);
+    lineCountRef.current++;
+
+    if (lineCountRef.current > MAX_TERMINAL_LINES) {
+      xterm.clear();
+      lineCountRef.current = 0;
+      xterm.writeln("\x1b[90m[Terminal history cleared]\x1b[0m");
+    }
+  };
+
+  const handleErrorEvent = (event: any) => {
+    const xterm = xtermRef.current;
+    if (!xterm) return;
+
+    xterm.writeln(`\x1b[31m${event.payload}\x1b[0m`);
+    lineCountRef.current++;
+
+    if (lineCountRef.current > MAX_TERMINAL_LINES) {
+      xterm.clear();
+      lineCountRef.current = 0;
+      xterm.writeln("\x1b[90m[Terminal history cleared]\x1b[0m");
+    }
+  };
+
+  const handleFinishEvent = () => {
+    setBusy(false);
+    commandBufferRef.current = "";
+    historyIndexRef.current = -1;
+    displayPrompt();
   };
 
   const handleTerminalInput = (data: string, xterm: XTerm) => {
@@ -172,6 +201,7 @@ const Terminal: React.FC<TerminalProps> = ({ currentDir, onCtrlC }) => {
         // Handle built-in commands
         if (command === "clear" || command === "cls") {
           xterm.clear();
+          lineCountRef.current = 0;
           displayPrompt();
           commandBufferRef.current = "";
           historyIndexRef.current = -1;
@@ -184,7 +214,7 @@ const Terminal: React.FC<TerminalProps> = ({ currentDir, onCtrlC }) => {
 
         setBusy(true);
         commandBufferRef.current = "";
-        historyIndexRef.current = -1;
+
         invoke("execute_terminal_command", {
           command,
           cwd: currentDir || undefined,
