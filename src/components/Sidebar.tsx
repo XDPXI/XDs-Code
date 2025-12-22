@@ -87,7 +87,7 @@ const Sidebar: React.FC<SidebarProps> = ({
 
   const handleCreateFile = async () => {
     setContextMenu(null);
-    const fileName = prompt("Enter file name:");
+    const fileName = await prompt("Enter file name:");
     if (!fileName) return;
 
     try {
@@ -101,7 +101,7 @@ const Sidebar: React.FC<SidebarProps> = ({
 
   const handleCreateFolder = async () => {
     setContextMenu(null);
-    const folderName = prompt("Enter folder name:");
+    const folderName = await prompt("Enter folder name:");
     if (!folderName) return;
 
     try {
