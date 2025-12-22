@@ -332,7 +332,6 @@ fn execute_terminal_command(
     let app_stdout = app.clone();
     let app_stderr = app.clone();
     let app_finish = app.clone();
-    let current_process = state.current_process.clone();
 
     thread::spawn(move || {
         let reader = BufReader::new(stdout);
@@ -348,12 +347,37 @@ fn execute_terminal_command(
         }
     });
 
-    thread::spawn(move || loop {
-        std::thread::sleep(std::time::Duration::from_millis(100));
+    let current_process = state.current_process.clone();
+    thread::spawn(move || {
+        loop {
+            let mut process = current_process.lock().unwrap();
 
-        if current_process.lock().unwrap().is_none() {
-            let _ = app_finish.emit("command-finished", "");
-            break;
+            if let Some(ref mut child) = *process {
+                match child.try_wait() {
+                    Ok(Some(_status)) => {
+                        // Process finished
+                        drop(process);
+                        let _ = app_finish.emit("command-finished", "");
+                        break;
+                    }
+                    Ok(None) => {
+                        // Process still running
+                        drop(process);
+                        thread::sleep(std::time::Duration::from_millis(500));
+                    }
+                    Err(_) => {
+                        // Error waiting, assume finished
+                        drop(process);
+                        let _ = app_finish.emit("command-finished", "");
+                        break;
+                    }
+                }
+            } else {
+                // No process
+                drop(process);
+                let _ = app_finish.emit("command-finished", "");
+                break;
+            }
         }
     });
 
