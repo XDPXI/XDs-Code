@@ -85,41 +85,28 @@ export default function App() {
           return;
         }
 
-        if (result) {
-          try {
-            await invoke("write_file", {
-              path: filePath,
-              content: contentRef.current,
-            });
-            setUnsavedFiles((prev) => {
-              const newSet = new Set(prev);
-              newSet.delete(filePath);
-              return newSet;
-            });
-          } catch (error) {
-            console.error("Failed to save file:", error);
-            await alert(`Failed to save file: ${error}`);
-            return;
-          }
-        } else {
+        try {
+          await invoke("write_file", {
+            path: filePath,
+            content: contentRef.current,
+          });
           setUnsavedFiles((prev) => {
             const newSet = new Set(prev);
             newSet.delete(filePath);
             return newSet;
           });
+        } catch (error) {
+          console.error("Failed to save file:", error);
+          await alert(`Failed to save file: ${error}`);
+          return;
         }
       }
 
       setOpenTabs((prev) => prev.filter((f) => f.path !== filePath));
 
       if (currentFile === filePath) {
-        setCurrentFile((prev) => {
-          if (prev === filePath) {
-            const remainingTabs = openTabs.filter((t) => t.path !== filePath);
-            return remainingTabs.length > 0 ? remainingTabs[0].path : null;
-          }
-          return prev;
-        });
+        const remainingTabs = openTabs.filter((t) => t.path !== filePath);
+        setCurrentFile(remainingTabs.length > 0 ? remainingTabs[0].path : null);
         setFileContent("");
         contentRef.current = "";
       }
@@ -185,21 +172,16 @@ export default function App() {
 
   const handleOpenFolder = useCallback(async () => {
     try {
-      console.log("Opening folder dialog...");
       const selected = await open({
         directory: true,
         multiple: false,
         title: "Select a folder to open",
       });
 
-      console.log("Selected:", selected);
-
       if (selected) {
         setDirStack([]);
         setSelectedDir(selected);
         await readDirectory(selected);
-      } else {
-        console.log("No folder selected");
       }
     } catch (error) {
       console.error("Error opening folder:", error);
