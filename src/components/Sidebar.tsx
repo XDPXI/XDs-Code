@@ -1,6 +1,7 @@
 import React, { useMemo, useState, useEffect, useRef } from "react";
 import { getFileIcon } from "../utils/fileHelpers";
 import { invoke } from "@tauri-apps/api/core";
+import { useModal } from "../hooks/useModal";
 
 interface SidebarProps {
   fileList: FileEntry[];
@@ -23,6 +24,7 @@ const Sidebar: React.FC<SidebarProps> = ({
 }) => {
   const [contextMenu, setContextMenu] = useState<ContextMenu | null>(null);
   const contextMenuRef = useRef<HTMLDivElement>(null);
+  const { alert, prompt } = useModal();
 
   useEffect(() => {
     if (selectedDir === "null") return;

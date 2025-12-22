@@ -9,6 +9,7 @@ interface EditorWrapperProps {
   setFileContent: (content: string) => void;
   isDirtyRef: React.RefObject<boolean>;
   defineCustomTheme: (monaco: typeof import("monaco-editor")) => void;
+  onContentChange?: (newContent: string) => void;
 }
 
 const EditorWrapper: React.FC<EditorWrapperProps> = ({
@@ -18,6 +19,7 @@ const EditorWrapper: React.FC<EditorWrapperProps> = ({
   setFileContent,
   isDirtyRef,
   defineCustomTheme,
+  onContentChange,
 }) => (
   <Editor
     height="100%"
@@ -28,9 +30,11 @@ const EditorWrapper: React.FC<EditorWrapperProps> = ({
     )}
     value={fileContent}
     onChange={(value) => {
-      contentRef.current = value || "";
-      setFileContent(value || "");
+      const newContent = value || "";
+      contentRef.current = newContent;
+      setFileContent(newContent);
       isDirtyRef.current = true;
+      onContentChange?.(newContent);
     }}
     beforeMount={defineCustomTheme}
     theme="xd-dark"

@@ -11,8 +11,10 @@ import EditorWrapper from "./components/EditorWrapper";
 import StatusBar from "./components/StatusBar";
 import Terminal from "./components/Terminal";
 import { isImageFile, isVideoFile } from "./utils/fileHelpers";
+import { useModal } from "./hooks/useModal";
 
 export default function App() {
+  const { alert, confirm } = useModal();
   const [fileList, setFileList] = useState<FileEntry[]>([]);
   const [openTabs, setOpenTabs] = useState<OpenFile[]>([]);
   const [currentFile, setCurrentFile] = useState<string | null>(null);
@@ -23,6 +25,7 @@ export default function App() {
   const [terminalOpen, setTerminalOpen] = useState(false);
   const [projectStructureOpen, setProjectStructureOpen] = useState(true);
   const [selectedDir, setSelectedDir] = useState<string>("null");
+  const [unsavedFiles, setUnsavedFiles] = useState<Set<string>>(new Set());
   const contentRef = useRef<string>("");
   const isDirtyRef = useRef<boolean>(false);
 
@@ -68,11 +71,42 @@ export default function App() {
   }, []);
 
   const closeTab = useCallback(
-    (filePath: string | null) => {
+    async (filePath: string | null) => {
+      if (!filePath) return;
+
+      if (unsavedFiles.has(filePath)) {
+        const result = await confirm(
+          "This file has unsaved changes. Do you want to save them?",
+          "No",
+          "Yes",
+        );
+
+        if (result) {
+          const tab = openTabs.find((t) => t.path === filePath);
+          if (tab) {
+            try {
+              await invoke("write_file", {
+                path: filePath,
+                content: tab.content,
+              });
+              setUnsavedFiles((prev) => {
+                const newSet = new Set(prev);
+                newSet.delete(filePath);
+                return newSet;
+              });
+            } catch (error) {
+              console.error("Failed to save file:", error);
+              await alert(`Failed to save file: ${error}`);
+              return;
+            }
+          }
+        }
+      }
+
       setOpenTabs((prev) => prev.filter((f) => f.path !== filePath));
       if (currentFile === filePath) {
         setOpenTabs((prev) => {
-          if (prev.length > 1) {
+          if (prev.length > 0) {
             const newCurrent = prev.find((f) => f.path !== filePath);
             if (newCurrent) {
               setCurrentFile(newCurrent.path);
@@ -88,21 +122,24 @@ export default function App() {
         });
       }
     },
-    [currentFile],
+    [unsavedFiles, openTabs, currentFile, confirm, alert],
   );
 
-  const readDirectory = useCallback(async (dirPath: string) => {
-    try {
-      const result = await invoke<DirectoryContents>("read_directory", {
-        path: dirPath,
-      });
-      setFileList(result.entries);
-      setCurrentDir(result.current_path);
-    } catch (error) {
-      console.error("Failed to read directory:", error);
-      alert(`Failed to read directory: ${error}`);
-    }
-  }, []);
+  const readDirectory = useCallback(
+    async (dirPath: string) => {
+      try {
+        const result = await invoke<DirectoryContents>("read_directory", {
+          path: dirPath,
+        });
+        setFileList(result.entries);
+        setCurrentDir(result.current_path);
+      } catch (error) {
+        console.error("Failed to read directory:", error);
+        await alert(`Failed to read directory: ${error}`);
+      }
+    },
+    [alert],
+  );
 
   const refreshDirectory = useCallback(() => {
     if (currentDir) {
@@ -130,13 +167,19 @@ export default function App() {
         ),
       );
 
+      setUnsavedFiles((prev) => {
+        const newSet = new Set(prev);
+        newSet.delete(currentFile);
+        return newSet;
+      });
+
       isDirtyRef.current = false;
       console.log("File saved successfully");
     } catch (error) {
       console.error("Saving file failed", error);
-      alert(`Failed to save file: ${error}`);
+      await alert(`Failed to save file: ${error}`);
     }
-  }, [currentFile]);
+  }, [currentFile, alert]);
 
   const handleOpenFolder = useCallback(async () => {
     try {
@@ -153,29 +196,17 @@ export default function App() {
         setDirStack([]);
         setSelectedDir(selected);
         await readDirectory(selected);
-      } else if (selected) {
-        console.error("Unexpected selected value:", selected);
       } else {
         console.log("No folder selected");
       }
     } catch (error) {
       console.error("Error opening folder:", error);
-      alert(`Failed to open folder: ${error}`);
+      await alert(`Failed to open folder: ${error}`);
     }
-  }, [readDirectory]);
+  }, [readDirectory, alert]);
 
   const handleFileClick = useCallback(
     async (entry: FileEntry) => {
-      if (isDirtyRef.current && currentFile) {
-        const confirmSave = window.confirm(
-          "You have unsaved changes. Do you want to save them?",
-        );
-        if (confirmSave) {
-          await handleSaveFile();
-        }
-        isDirtyRef.current = false;
-      }
-
       if (entry.is_directory) {
         setDirStack((prev) => [...prev, currentDir]);
         await readDirectory(entry.path);
@@ -190,7 +221,7 @@ export default function App() {
             !isImageFile(entry.name) &&
             !isVideoFile(entry.name)
           ) {
-            alert("This file appears to be binary and cannot be opened.");
+            await alert("This file appears to be binary and cannot be opened.");
             return;
           }
 
@@ -224,11 +255,11 @@ export default function App() {
           }
         } catch (error) {
           console.error("Failed to open file:", error);
-          alert(`Failed to open file: ${error}`);
+          await alert(`Failed to open file: ${error}`);
         }
       }
     },
-    [currentFile, currentDir, handleSaveFile, openTab, readDirectory],
+    [currentDir, openTab, readDirectory, alert],
   );
 
   const goBackDirectory = useCallback(() => {
@@ -274,17 +305,7 @@ export default function App() {
   }, [handleKeyDown]);
 
   const handleTabClick = useCallback(
-    async (filePath: string) => {
-      if (isDirtyRef.current && currentFile && currentFile !== filePath) {
-        const confirmSave = window.confirm(
-          "You have unsaved changes. Do you want to save them?",
-        );
-        if (confirmSave) {
-          await handleSaveFile();
-        }
-        isDirtyRef.current = false;
-      }
-
+    (filePath: string) => {
       const tab = openTabs.find((t) => t.path === filePath);
       if (tab) {
         setCurrentFile(tab.path);
@@ -301,7 +322,7 @@ export default function App() {
         }
       }
     },
-    [currentFile, openTabs, handleSaveFile],
+    [openTabs],
   );
 
   return (
@@ -327,6 +348,7 @@ export default function App() {
               currentFile={currentFile}
               handleTabClick={handleTabClick}
               closeTab={closeTab}
+              unsavedFiles={unsavedFiles}
             />
             <div className="editor-terminal-container">
               <div
@@ -347,6 +369,16 @@ export default function App() {
                       setFileContent={setFileContent}
                       isDirtyRef={isDirtyRef}
                       defineCustomTheme={defineCustomTheme}
+                      onContentChange={(newContent) => {
+                        isDirtyRef.current = true;
+                        if (currentFile && !unsavedFiles.has(currentFile)) {
+                          setUnsavedFiles((prev) => {
+                            const newSet = new Set(prev);
+                            newSet.add(currentFile);
+                            return newSet;
+                          });
+                        }
+                      }}
                     />
                   ))}
               </div>

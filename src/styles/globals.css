@@ -238,7 +238,7 @@ html,
 }
 
 .tab-item {
-    padding: 0 16px;
+    padding: 0 12px;
     height: 100%;
     cursor: pointer;
     border: none;
@@ -255,6 +255,8 @@ html,
     border-right: 1px solid #2f343e;
     border-bottom: 1px solid #2f343e;
     border-top: 1px solid #2f343e;
+    gap: 8px;
+    min-width: fit-content;
 }
 
 .tab-item.active {
@@ -273,6 +275,51 @@ html,
     border-right: 1px solid #464b57;
     border-bottom: rgba(70, 75, 87, 0.2);
     border-top: 1px solid #464b57;
+}
+
+.tab-name {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.tab-unsaved-indicator {
+    color: #f48771;
+    font-weight: 600;
+    font-size: 14px;
+    line-height: 1;
+    margin-left: 2px;
+}
+
+.tab-close-btn {
+    background: transparent;
+    border: none;
+    color: #9ca2af;
+    cursor: pointer;
+    padding: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    width: 20px;
+    height: 20px;
+    border-radius: 2px;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+    font-family: inherit;
+}
+
+.tab-close-btn:hover {
+    color: #cbcfd4;
+    background-color: rgba(70, 75, 87, 0.5);
+}
+
+.tab-close-btn:active {
+    background-color: rgba(70, 75, 87, 0.7);
+}
+
+.tab-item:hover .tab-close-btn {
+    opacity: 1;
 }
 
 .editor-terminal-container {
@@ -583,4 +630,157 @@ html,
     background-color: #282c33;
     overflow: hidden;
     display: flex;
+}
+
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10001;
+}
+
+.modal-container {
+    background-color: #3b414d;
+    border: 1px solid #464b57;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+    max-width: 500px;
+    width: 90%;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    animation: slideUp 0.3s ease-out;
+    outline: none;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+    border-bottom: 1px solid #464b57;
+    flex-shrink: 0;
+}
+
+.modal-title {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: #cbcfd4;
+}
+
+.modal-close-btn {
+    background: transparent;
+    border: none;
+    color: #9ca2af;
+    cursor: pointer;
+    font-size: 18px;
+    padding: 4px 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    width: 32px;
+    height: 32px;
+}
+
+.modal-close-btn:hover {
+    color: #cbcfd4;
+    background-color: rgba(70, 75, 87, 0.3);
+}
+
+.modal-body {
+    padding: 20px;
+    overflow-y: auto;
+    flex: 1;
+    min-height: 0;
+}
+
+.modal-message {
+    margin: 0 0 16px 0;
+    font-size: 14px;
+    color: #cbcfd4;
+    line-height: 1.5;
+}
+
+.modal-input {
+    width: 100%;
+    padding: 12px;
+    background-color: #282c33;
+    border: 1px solid #464b57;
+    color: #cbcfd4;
+    font-size: 13px;
+    font-family: "JetBrains Mono", monospace;
+    box-sizing: border-box;
+    transition: all 0.2s ease;
+}
+
+.modal-input:focus {
+    outline: none;
+    border-color: none;
+}
+
+.modal-footer {
+    display: flex;
+    gap: 12px;
+    padding: 16px 20px;
+    border-top: 1px solid #464b57;
+    flex-shrink: 0;
+    justify-content: flex-end;
+}
+
+.modal-btn {
+    padding: 8px 20px;
+    border: 1px solid #464b57;
+    font-size: 13px;
+    cursor: pointer;
+    font-family: "JetBrains Mono", monospace;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    min-width: 80px;
+}
+
+.modal-btn-cancel {
+    background-color: transparent;
+    color: #9ca2af;
+}
+
+.modal-btn-cancel:hover {
+    background-color: rgba(70, 75, 87, 0.3);
+    border-color: #535966;
+    color: #cbcfd4;
+}
+
+.modal-btn-confirm {
+    background-color: transparent;
+    color: #cbcfd4;
+    border-color: #535966;
+}
+
+.modal-btn-confirm:hover {
+    background-color: rgba(70, 75, 87, 0.3);
+    border-color: #535966;
+    color: #cbcfd4;
+}
+
+.modal-body::-webkit-scrollbar {
+    width: 8px;
+}
+
+.modal-body::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.modal-body::-webkit-scrollbar-thumb {
+    background-color: #464b57;
+    border-radius: 4px;
+}
+
+.modal-body::-webkit-scrollbar-thumb:hover {
+    background-color: #535966;
 }
