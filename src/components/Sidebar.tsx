@@ -37,7 +37,6 @@ const Sidebar: React.FC<SidebarProps> = ({
   const [gitStatus, setGitStatus] = useState<Map<string, GitFileInfo>>(
     new Map(),
   );
-  const [isGitRepo, setIsGitRepo] = useState(false);
   const contextMenuRef = useRef<HTMLDivElement>(null);
   const { alert, prompt } = useModal();
 
@@ -49,7 +48,6 @@ const Sidebar: React.FC<SidebarProps> = ({
         const isGit = await invoke<boolean>("is_git_repository", {
           path: selectedDir,
         });
-        setIsGitRepo(isGit);
 
         if (isGit) {
           const status = await invoke<GitFileInfo[]>("get_git_status", {
