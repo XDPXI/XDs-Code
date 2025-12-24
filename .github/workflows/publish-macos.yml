@@ -5,6 +5,9 @@ on:
     branches:
       - main
 
+permissions:
+  contents: write  # required to create releases
+
 jobs:
   build-macos-intel:
     runs-on: macos-15-intel
@@ -156,19 +159,14 @@ jobs:
           name: macos-arm-app
           path: ./artifacts/arm
 
-      - name: Delete existing 'dev' release if exists
+      - name: Delete existing release
         run: |
           gh release delete dev --yes || echo "No existing dev release"
-
-      - name: Create 'dev' release with artifacts
+        
+      - name: Create release
         uses: softprops/action-gh-release@v2
+        if: github.ref_type == 'dev'
         with:
-          tag_name: dev
-          name: dev
-          draft: false
-          prerelease: true
           files: |
             ./artifacts/intel/*.dmg
             ./artifacts/arm/*.dmg
-        env:
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
