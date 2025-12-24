@@ -18,11 +18,12 @@ jobs:
         id: git
         run: echo "short_sha=$(git rev-parse --short=7 HEAD)" >> $GITHUB_ENV
 
-      - name: Update versions to semver with hash
+      - name: Append dev hash to version
         run: |
-          sed -i '' "3s/.*/version = \"0.0.0+${{ env.short_sha }}\"/" src-tauri/Cargo.toml
-          sed -i '' "4s/.*/  \"version\": \"0.0.0+${{ env.short_sha }}\",/" src-tauri/tauri.conf.json
-          sed -i '' "3s/.*/  \"version\": \"0.0.0+${{ env.short_sha }}\",/" package.json
+          SHORT_SHA=${{ env.short_sha }}
+          sed -i '' -E "s/^(version\s*=\s*\"[0-9]+\.[0-9]+\.[0-9]+)(.*)\"/\1+dev.${SHORT_SHA}\"/" src-tauri/Cargo.toml
+          sed -i '' -E "s/(\"version\"\s*:\s*\"[0-9]+\.[0-9]+\.[0-9]+)(.*)\",/\1+dev.${SHORT_SHA}\","/g" src-tauri/tauri.conf.json
+          sed -i '' -E "s/(\"version\"\s*:\s*\"[0-9]+\.[0-9]+\.[0-9]+)(.*)\",/\1+dev.${SHORT_SHA}\","/g" package.json
 
       - name: Set up Node.js
         uses: actions/setup-node@v6
@@ -84,11 +85,12 @@ jobs:
         id: git
         run: echo "short_sha=$(git rev-parse --short=7 HEAD)" >> $GITHUB_ENV
 
-      - name: Update versions to semver with hash
+      - name: Append dev hash to version
         run: |
-          sed -i '' "3s/.*/version = \"0.0.0+${{ env.short_sha }}\"/" src-tauri/Cargo.toml
-          sed -i '' "4s/.*/  \"version\": \"0.0.0+${{ env.short_sha }}\",/" src-tauri/tauri.conf.json
-          sed -i '' "3s/.*/  \"version\": \"0.0.0+${{ env.short_sha }}\",/" package.json
+          SHORT_SHA=${{ env.short_sha }}
+          sed -i '' -E "s/^(version\s*=\s*\"[0-9]+\.[0-9]+\.[0-9]+)(.*)\"/\1+dev.${SHORT_SHA}\"/" src-tauri/Cargo.toml
+          sed -i '' -E "s/(\"version\"\s*:\s*\"[0-9]+\.[0-9]+\.[0-9]+)(.*)\",/\1+dev.${SHORT_SHA}\","/g" src-tauri/tauri.conf.json
+          sed -i '' -E "s/(\"version\"\s*:\s*\"[0-9]+\.[0-9]+\.[0-9]+)(.*)\",/\1+dev.${SHORT_SHA}\","/g" package.json
 
       - name: Set up Node.js
         uses: actions/setup-node@v6
@@ -142,36 +144,39 @@ jobs:
           retention-days: 30
 
   release-dev:
-    needs: [build-macos-intel, build-macos-arm]
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
+  needs: [build-macos-intel, build-macos-arm]
+  runs-on: ubuntu-latest
+  steps:
+    - uses: actions/checkout@v6
 
-      - name: Download Intel artifacts
-        uses: actions/download-artifact@v6
-        with:
-          name: macos-intel-app
-          path: ./artifacts/intel
+    - name: Download Intel artifacts
+      uses: actions/download-artifact@v6
+      with:
+        name: macos-intel-app
+        path: ./artifacts/intel
 
-      - name: Download ARM artifacts
-        uses: actions/download-artifact@v6
-        with:
-          name: macos-arm-app
-          path: ./artifacts/arm
+    - name: Download ARM artifacts
+      uses: actions/download-artifact@v6
+      with:
+        name: macos-arm-app
+        path: ./artifacts/arm
 
-      - name: Delete existing release
-        run: |
-          gh release delete dev --yes || echo "No existing dev release"
+    - name: Get version+dev hash
+      id: version
+      run: |
+        VERSION=$(jq -r '.version' package.json)
+        echo "release_version=$VERSION" >> $GITHUB_ENV
+        echo "::set-output name=tag::$VERSION"
 
-      - name: Create release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: dev
-          name: dev
-          draft: false
-          prerelease: true
-          files: |
-            ./artifacts/intel/**/*.dmg
-            ./artifacts/arm/**/*.dmg
-          overwrite_files: true
-          token: ${{ secrets.GH_TOKEN }}
+    - name: Create release
+      uses: softprops/action-gh-release@v2
+      with:
+        tag_name: ${{ env.release_version }}
+        name: ${{ env.release_version }}
+        draft: false
+        prerelease: true
+        files: |
+          ./artifacts/intel/**/*.dmg
+          ./artifacts/arm/**/*.dmg
+        overwrite_files: true
+        token: ${{ secrets.GH_TOKEN }}
