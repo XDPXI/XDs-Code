@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { useModal } from "../hooks/useModal";
 
 interface SettingsPageProps {
   isOpen: boolean;
@@ -20,6 +21,19 @@ interface AppSettings {
   theme: string;
 }
 
+const DEFAULT_SETTINGS: AppSettings = {
+  editor_font_size: 14,
+  editor_word_wrap: true,
+  editor_minimap: false,
+  editor_line_numbers: true,
+  editor_render_whitespace: false,
+  terminal_font_size: 13,
+  sidebar_width: 240,
+  auto_save_enabled: false,
+  auto_save_interval: 5000,
+  theme: "dark",
+};
+
 const SettingsPage: React.FC<SettingsPageProps> = ({
   isOpen,
   onClose,
@@ -28,6 +42,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
   const [settings, setSettings] = useState<AppSettings | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { confirm } = useModal();
 
   useEffect(() => {
     if (isOpen) {
@@ -74,6 +89,22 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
     };
 
     await saveSettings(updatedSettings);
+  };
+
+  const handleResetToDefaults = async (): Promise<void> => {
+    const result = await confirm(
+      "Are you sure you want to reset all settings to their default values? This action cannot be undone.",
+      "Cancel",
+      "Reset to Defaults",
+    );
+
+    if (!result) {
+      return;
+    }
+
+    if (result) {
+      await saveSettings(DEFAULT_SETTINGS);
+    }
   };
 
   if (!isOpen) return null;
@@ -342,6 +373,17 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
                 <p>A code editor inspired by Visual Studio Code</p>
                 <p className="about-copy">&copy; 2025 XDPXI</p>
               </div>
+            </div>
+
+            {/* Reset Button */}
+            <div className="settings-section">
+              <button
+                className="reset-defaults-btn"
+                onClick={handleResetToDefaults}
+              >
+                <i className="fa-solid fa-arrow-rotate-left" /> Reset to
+                Defaults
+              </button>
             </div>
           </div>
         )}

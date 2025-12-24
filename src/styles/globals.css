@@ -1004,3 +1004,36 @@ html,
 .settings-content::-webkit-scrollbar-thumb:hover {
     background-color: #535966;
 }
+
+.reset-defaults-btn {
+    width: 100%;
+    padding: 12px 16px;
+    background-color: rgba(244, 135, 113, 0.1);
+    color: #f48771;
+    border: 1px solid #f48771;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    font-family: "JetBrains Mono", monospace;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.reset-defaults-btn:hover {
+    background-color: rgba(244, 135, 113, 0.2);
+    border-color: #ff7f50;
+    color: #ff7f50;
+}
+
+.reset-defaults-btn i {
+    font-size: 12px;
+    transition: transform 0.3s ease;
+}
+
+.reset-defaults-btn:hover i {
+    transform: rotate(-375deg);
+}

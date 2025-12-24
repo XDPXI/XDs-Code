@@ -44,6 +44,7 @@ export default function App() {
   const [settings, setSettings] = useState<AppSettings | null>(null);
   const contentRef = useRef<string>("");
   const isDirtyRef = useRef<boolean>(false);
+  const autoSaveTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     const loadSettings = async () => {
@@ -56,6 +57,57 @@ export default function App() {
     };
     loadSettings();
   }, []);
+
+  // Autosave
+  useEffect(() => {
+    if (!settings || !settings.auto_save_enabled || !currentFile) {
+      if (autoSaveTimerRef.current) {
+        clearInterval(autoSaveTimerRef.current);
+        autoSaveTimerRef.current = null;
+      }
+      return;
+    }
+
+    if (autoSaveTimerRef.current) {
+      clearInterval(autoSaveTimerRef.current);
+    }
+
+    autoSaveTimerRef.current = setInterval(async () => {
+      if (isDirtyRef.current && currentFile && unsavedFiles.has(currentFile)) {
+        try {
+          await invoke("write_file", {
+            path: currentFile,
+            content: contentRef.current,
+          });
+
+          setOpenTabs((prev) =>
+            prev.map((tab) =>
+              tab.path === currentFile
+                ? { ...tab, content: contentRef.current }
+                : tab,
+            ),
+          );
+
+          setUnsavedFiles((prev) => {
+            const newSet = new Set(prev);
+            newSet.delete(currentFile);
+            return newSet;
+          });
+
+          isDirtyRef.current = false;
+        } catch (error) {
+          console.error("Autosave failed:", error);
+        }
+      }
+    }, settings.auto_save_interval);
+
+    return () => {
+      if (autoSaveTimerRef.current) {
+        clearInterval(autoSaveTimerRef.current);
+        autoSaveTimerRef.current = null;
+      }
+    };
+  }, [settings, currentFile, unsavedFiles]);
 
   const defineCustomTheme = (monaco: typeof import("monaco-editor")) => {
     monaco.editor.defineTheme("xd-dark", {
