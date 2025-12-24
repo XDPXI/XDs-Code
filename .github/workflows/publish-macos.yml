@@ -144,39 +144,39 @@ jobs:
           retention-days: 30
 
   release-dev:
-  needs: [build-macos-intel, build-macos-arm]
-  runs-on: ubuntu-latest
-  steps:
-    - uses: actions/checkout@v6
-
-    - name: Download Intel artifacts
-      uses: actions/download-artifact@v6
-      with:
-        name: macos-intel-app
-        path: ./artifacts/intel
-
-    - name: Download ARM artifacts
-      uses: actions/download-artifact@v6
-      with:
-        name: macos-arm-app
-        path: ./artifacts/arm
-
-    - name: Get version+dev hash
-      id: version
-      run: |
-        VERSION=$(jq -r '.version' package.json)
-        echo "release_version=$VERSION" >> $GITHUB_ENV
-        echo "::set-output name=tag::$VERSION"
-
-    - name: Create release
-      uses: softprops/action-gh-release@v2
-      with:
-        tag_name: ${{ env.release_version }}
-        name: ${{ env.release_version }}
-        draft: false
-        prerelease: true
-        files: |
-          ./artifacts/intel/**/*.dmg
-          ./artifacts/arm/**/*.dmg
-        overwrite_files: true
-        token: ${{ secrets.GH_TOKEN }}
+    needs: [build-macos-intel, build-macos-arm]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+  
+      - name: Download Intel artifacts
+        uses: actions/download-artifact@v6
+        with:
+          name: macos-intel-app
+          path: ./artifacts/intel
+  
+      - name: Download ARM artifacts
+        uses: actions/download-artifact@v6
+        with:
+          name: macos-arm-app
+          path: ./artifacts/arm
+  
+      - name: Get version+dev hash
+        id: version
+        run: |
+          VERSION=$(jq -r '.version' package.json)
+          echo "release_version=$VERSION" >> $GITHUB_ENV
+          echo "::set-output name=tag::$VERSION"
+  
+      - name: Create release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.release_version }}
+          name: ${{ env.release_version }}
+          draft: false
+          prerelease: true
+          files: |
+            ./artifacts/intel/**/*.dmg
+            ./artifacts/arm/**/*.dmg
+          overwrite_files: true
+          token: ${{ secrets.GH_TOKEN }}
