@@ -28,3 +28,10 @@ interface OpenFile {
   path: string;
   content: string;
 }
+
+type GitFileStatus = "untracked" | "modified" | "staged" | "unmodified";
+
+interface GitFileInfo {
+  path: string;
+  status: GitFileStatus;
+}

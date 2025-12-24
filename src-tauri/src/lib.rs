@@ -44,6 +44,24 @@ pub struct AppSettings {
     pub theme: String,
 }
 
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub enum GitFileStatus {
+    #[serde(rename = "untracked")]
+    Untracked,
+    #[serde(rename = "modified")]
+    Modified,
+    #[serde(rename = "staged")]
+    Staged,
+    #[serde(rename = "unmodified")]
+    Unmodified,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct GitFileInfo {
+    pub path: String,
+    pub status: GitFileStatus,
+}
+
 #[tauri::command]
 fn read_directory(path: String, state: State<AppState>) -> Result<DirectoryContents, String> {
     let dir_path = Path::new(&path);
@@ -479,6 +497,61 @@ fn save_settings(settings: AppSettings) -> Result<(), String> {
     std::fs::write(&settings_path, json).map_err(|e| format!("Failed to write settings: {}", e))
 }
 
+#[tauri::command]
+fn get_git_status(repo_path: String) -> Result<Vec<GitFileInfo>, String> {
+    let git_dir = std::path::Path::new(&repo_path).join(".git");
+    if !git_dir.exists() {
+        return Ok(Vec::new());
+    }
+
+    let output = Command::new("git")
+        .arg("status")
+        .arg("--porcelain")
+        .current_dir(&repo_path)
+        .output()
+        .map_err(|e| format!("Failed to run git command: {}", e))?;
+
+    if !output.status.success() {
+        return Ok(Vec::new());
+    }
+
+    let status_output = String::from_utf8_lossy(&output.stdout);
+    let mut git_files = Vec::new();
+
+    for line in status_output.lines() {
+        if line.is_empty() {
+            continue;
+        }
+
+        if line.len() < 3 {
+            continue;
+        }
+
+        let status_code = &line[0..2];
+        let file_path = line[3..].trim().to_string();
+
+        let status = match status_code {
+            "??" => GitFileStatus::Untracked,
+            " M" | "M " | "MM" => GitFileStatus::Modified,
+            "A " | "AM" | "A" => GitFileStatus::Staged,
+            _ => GitFileStatus::Modified,
+        };
+
+        git_files.push(GitFileInfo {
+            path: file_path,
+            status,
+        });
+    }
+
+    Ok(git_files)
+}
+
+#[tauri::command]
+fn is_git_repository(path: String) -> Result<bool, String> {
+    let git_dir = std::path::Path::new(&path).join(".git");
+    Ok(git_dir.exists())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -504,6 +577,8 @@ pub fn run() {
             stop_terminal_command,
             load_settings,
             save_settings,
+            get_git_status,
+            is_git_repository,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

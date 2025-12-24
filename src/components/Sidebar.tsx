@@ -9,6 +9,11 @@ import { getFileIcon } from "../utils/fileHelpers";
 import { invoke } from "@tauri-apps/api/core";
 import { useModal } from "../hooks/useModal";
 
+interface GitFileInfo {
+  path: string;
+  status: "untracked" | "modified" | "staged" | "unmodified";
+}
+
 interface SidebarProps {
   fileList: FileEntry[];
   dirStack: string[];
@@ -29,18 +34,64 @@ const Sidebar: React.FC<SidebarProps> = ({
   refreshDirectory,
 }) => {
   const [contextMenu, setContextMenu] = useState<ContextMenu | null>(null);
+  const [gitStatus, setGitStatus] = useState<Map<string, GitFileInfo>>(
+    new Map(),
+  );
+  const [isGitRepo, setIsGitRepo] = useState(false);
   const contextMenuRef = useRef<HTMLDivElement>(null);
   const { alert, prompt } = useModal();
 
   useEffect(() => {
     if (selectedDir === "null") return;
 
-    const interval = setInterval(() => {
-      refreshDirectory();
-    }, 2000);
+    const checkGitAndLoadStatus = async () => {
+      try {
+        const isGit = await invoke<boolean>("is_git_repository", {
+          path: selectedDir,
+        });
+        setIsGitRepo(isGit);
 
+        if (isGit) {
+          const status = await invoke<GitFileInfo[]>("get_git_status", {
+            repoPath: selectedDir,
+          });
+
+          console.log("Git status response:", status);
+          console.log("Selected dir:", selectedDir);
+          console.log("File list:", fileList);
+
+          const statusMap = new Map<string, GitFileInfo>();
+
+          status.forEach((file) => {
+            console.log(
+              "Processing git file:",
+              file.path,
+              "Status:",
+              file.status,
+            );
+            statusMap.set(file.path, file);
+            const filename = file.path.split(/[/\\]/).pop();
+            if (filename) {
+              statusMap.set(filename, file);
+            }
+          });
+
+          console.log("Final status map:", statusMap);
+          setGitStatus(statusMap);
+        } else {
+          setGitStatus(new Map());
+        }
+      } catch (error) {
+        console.error("Error checking git status:", error);
+        setGitStatus(new Map());
+      }
+    };
+
+    checkGitAndLoadStatus();
+
+    const interval = setInterval(checkGitAndLoadStatus, 1000);
     return () => clearInterval(interval);
-  }, [selectedDir, refreshDirectory]);
+  }, [selectedDir]);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -181,7 +232,43 @@ const Sidebar: React.FC<SidebarProps> = ({
     }
   }, [contextMenu, alert, refreshDirectory]);
 
-  // FIX: Memoize file items with stable dependencies
+  const getGitStatusColor = (entry: FileEntry): string | undefined => {
+    let gitInfo = gitStatus.get(entry.path);
+
+    console.log("Checking entry:", entry.path, "Found:", gitInfo);
+
+    if (!gitInfo && selectedDir !== "null") {
+      const relativePath = entry.path
+        .replace(selectedDir, "")
+        .replace(/^[/\\]/, "");
+      console.log("Trying relative path:", relativePath);
+      gitInfo = gitStatus.get(relativePath);
+    }
+
+    if (!gitInfo) {
+      const fileName = entry.path.split(/[/\\]/).pop();
+      console.log("Trying filename:", fileName);
+      if (fileName) {
+        gitInfo = gitStatus.get(fileName);
+      }
+    }
+
+    console.log("Final git info for", entry.path, ":", gitInfo);
+
+    if (!gitInfo) return undefined;
+
+    switch (gitInfo.status) {
+      case "untracked":
+        return "#a1c181";
+      case "modified":
+        return "#dec184";
+      case "staged":
+        return "#8FAECF";
+      default:
+        return undefined;
+    }
+  };
+
   const fileItems = useMemo(() => {
     const items = [];
 
@@ -203,6 +290,9 @@ const Sidebar: React.FC<SidebarProps> = ({
       const icon = entry.is_directory
         ? "fa-solid fa-folder"
         : getFileIcon(entry.name);
+      const gitColor = getGitStatusColor(entry);
+      const style = gitColor ? { color: gitColor } : {};
+
       items.push(
         <button
           key={entry.path}
@@ -215,14 +305,22 @@ const Sidebar: React.FC<SidebarProps> = ({
               ? `Open folder ${entry.name}`
               : `Open file ${entry.name}`
           }
+          style={style}
         >
-          <i className={`file-icon ${icon}`} /> {entry.name}
+          <i className={`file-icon ${icon}`} style={style} /> {entry.name}
         </button>,
       );
     }
 
     return items;
-  }, [fileList, handleFileClick, goBackDirectory, dirStack]);
+  }, [
+    fileList,
+    handleFileClick,
+    goBackDirectory,
+    dirStack,
+    gitStatus,
+    selectedDir,
+  ]);
 
   return (
     <div

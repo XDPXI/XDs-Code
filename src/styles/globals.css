@@ -203,6 +203,7 @@ html,
 .file-item:hover {
     color: #cbcfd4;
     background-color: rgba(70, 75, 87, 0.3);
+    filter: brightness(1.15);
 }
 
 .file-icon {
