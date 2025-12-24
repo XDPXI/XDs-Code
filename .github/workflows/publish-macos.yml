@@ -9,18 +9,17 @@ jobs:
   build-macos-intel:
     runs-on: macos-15-intel
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v6
+      - uses: actions/checkout@v6
 
       - name: Get short commit hash
         id: git
         run: echo "short_sha=$(git rev-parse --short=7 HEAD)" >> $GITHUB_ENV
 
-      - name: Update versions to commit hash
+      - name: Update versions to semver with hash
         run: |
-          sed -i '' "3s/.*/version = \"${{ env.short_sha }}\"/" src-tauri/Cargo.toml
-          sed -i '' "4s/.*/  \"version\": \"${{ env.short_sha }}\",/" src-tauri/tauri.conf.json
-          sed -i '' "3s/.*/  \"version\": \"${{ env.short_sha }}\",/" package.json
+          sed -i '' "3s/.*/version = \"0.0.0+${{ env.short_sha }}\"/" src-tauri/Cargo.toml
+          sed -i '' "4s/.*/  \"version\": \"0.0.0+${{ env.short_sha }}\",/" src-tauri/tauri.conf.json
+          sed -i '' "3s/.*/  \"version\": \"0.0.0+${{ env.short_sha }}\",/" package.json
 
       - name: Set up Node.js
         uses: actions/setup-node@v6
@@ -76,18 +75,17 @@ jobs:
   build-macos-arm:
     runs-on: macos-15
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v6
+      - uses: actions/checkout@v6
 
       - name: Get short commit hash
         id: git
         run: echo "short_sha=$(git rev-parse --short=7 HEAD)" >> $GITHUB_ENV
 
-      - name: Update versions to commit hash
+      - name: Update versions to semver with hash
         run: |
-          sed -i '' "3s/.*/version = \"${{ env.short_sha }}\"/" src-tauri/Cargo.toml
-          sed -i '' "4s/.*/  \"version\": \"${{ env.short_sha }}\",/" src-tauri/tauri.conf.json
-          sed -i '' "3s/.*/  \"version\": \"${{ env.short_sha }}\",/" package.json
+          sed -i '' "3s/.*/version = \"0.0.0+${{ env.short_sha }}\"/" src-tauri/Cargo.toml
+          sed -i '' "4s/.*/  \"version\": \"0.0.0+${{ env.short_sha }}\",/" src-tauri/tauri.conf.json
+          sed -i '' "3s/.*/  \"version\": \"0.0.0+${{ env.short_sha }}\",/" package.json
 
       - name: Set up Node.js
         uses: actions/setup-node@v6
