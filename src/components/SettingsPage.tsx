@@ -334,20 +334,20 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
 
               <div className="shortcuts-grid">
                 <div className="shortcut-item">
-                  <span className="shortcut-action">Open Settings</span>
-                  <kbd className="shortcut-key">Ctrl+,</kbd>
+                  <span className="shortcut-action">Close Tab</span>
+                  <kbd className="shortcut-key">Ctrl+W</kbd>
                 </div>
                 <div className="shortcut-item">
                   <span className="shortcut-action">Save File</span>
                   <kbd className="shortcut-key">Ctrl+S</kbd>
                 </div>
                 <div className="shortcut-item">
-                  <span className="shortcut-action">Close Tab</span>
-                  <kbd className="shortcut-key">Ctrl+W</kbd>
-                </div>
-                <div className="shortcut-item">
                   <span className="shortcut-action">Toggle Terminal</span>
                   <kbd className="shortcut-key">Ctrl+J</kbd>
+                </div>
+                <div className="shortcut-item">
+                  <span className="shortcut-action">Open Settings</span>
+                  <kbd className="shortcut-key">Ctrl+,</kbd>
                 </div>
                 <div className="shortcut-item">
                   <span className="shortcut-action">Toggle Sidebar</span>
