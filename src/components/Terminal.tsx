@@ -23,11 +23,21 @@ const Terminal: React.FC<TerminalProps> = ({ currentDir, onCtrlC }) => {
   const unlistenersRef = useRef<Array<() => void>>([]);
   const lineCountRef = useRef(0);
 
+  const getFontSize = (): number => {
+    const size = getComputedStyle(document.documentElement).getPropertyValue(
+      "--terminal-font-size",
+    );
+    if (size) {
+      return parseInt(size);
+    }
+    return 13;
+  };
+
   useEffect(() => {
     const xterm = new XTerm({
       cursorBlink: true,
       fontFamily: "JetBrains Mono, Fira Code, monospace",
-      fontSize: 13,
+      fontSize: getFontSize(),
       theme: {
         background: "#282c33",
         foreground: "#cbcfd4",

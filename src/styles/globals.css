@@ -784,3 +784,223 @@ html,
 .modal-body::-webkit-scrollbar-thumb:hover {
     background-color: #535966;
 }
+
+.settings-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10001;
+}
+
+.settings-container {
+    background-color: #3b414d;
+    border: 1px solid #464b57;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+    width: 90%;
+    max-width: 700px;
+    max-height: 85vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.settings-loading {
+    padding: 40px;
+    text-align: center;
+    color: #9ca2af;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+}
+
+.settings-loading i {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.settings-error {
+    padding: 16px 20px;
+    background-color: rgba(244, 135, 113, 0.2);
+    color: #f48771;
+    border: 1px solid #464b57;
+    margin: 20px;
+    font-size: 13px;
+}
+
+.settings-content {
+    overflow-y: auto;
+    flex: 1;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.settings-section {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.settings-section-title {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: #74ade8;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.setting-item {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.setting-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #cbcfd4;
+    font-size: 13px;
+    cursor: pointer;
+}
+
+.setting-value {
+    margin-left: auto;
+    color: #9ca2af;
+    font-size: 12px;
+}
+
+.setting-checkbox {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+    accent-color: #74ade8;
+}
+
+.setting-input-group {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.setting-range {
+    flex: 1;
+    height: 6px;
+    border-radius: 3px;
+    background: #282c33;
+    outline: none;
+    accent-color: #74ade8;
+    cursor: pointer;
+}
+
+.setting-range::-webkit-slider-thumb {
+    appearance: none;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: #74ade8;
+    cursor: pointer;
+    box-shadow: 0 0 4px rgba(116, 173, 232, 0.5);
+}
+
+.setting-range::-moz-range-thumb {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: #74ade8;
+    cursor: pointer;
+    border: none;
+    box-shadow: 0 0 4px rgba(116, 173, 232, 0.5);
+}
+
+.shortcuts-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 12px;
+}
+
+.shortcut-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 12px;
+    background-color: rgba(70, 75, 87, 0.2);
+    border: 1px solid #464b57;
+    gap: 12px;
+}
+
+.shortcut-action {
+    color: #cbcfd4;
+    font-size: 13px;
+    flex: 1;
+}
+
+.shortcut-key {
+    background-color: rgba(70, 75, 87, 0.5);
+    color: #cbcfd4;
+    padding: 4px 8px;
+    border: 1px solid #464b57;
+    font-size: 11px;
+    font-family: monospace;
+    white-space: nowrap;
+}
+
+.about-info {
+    padding: 12px;
+    background-color: rgba(70, 75, 87, 0.2);
+    border: 1px solid #464b57;
+    color: #9ca2af;
+    font-size: 13px;
+}
+
+.about-info p {
+    margin: 4px 0;
+}
+
+.about-info strong {
+    color: #cbcfd4;
+}
+
+.about-copy {
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid #464b57;
+    color: #535966;
+    font-size: 12px;
+}
+
+.settings-content::-webkit-scrollbar {
+    width: 8px;
+}
+
+.settings-content::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.settings-content::-webkit-scrollbar-thumb {
+    background-color: #464b57;
+    border-radius: 4px;
+}
+
+.settings-content::-webkit-scrollbar-thumb:hover {
+    background-color: #535966;
+}

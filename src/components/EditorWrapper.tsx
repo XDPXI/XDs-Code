@@ -2,6 +2,19 @@ import React from "react";
 import Editor from "@monaco-editor/react";
 import { getMonacoLanguage } from "../utils/fileHelpers";
 
+interface AppSettings {
+  editor_font_size: number;
+  editor_word_wrap: boolean;
+  editor_minimap: boolean;
+  editor_line_numbers: boolean;
+  editor_render_whitespace: boolean;
+  terminal_font_size: number;
+  sidebar_width: number;
+  auto_save_enabled: boolean;
+  auto_save_interval: number;
+  theme: string;
+}
+
 interface EditorWrapperProps {
   currentFile: string | null;
   fileContent: string;
@@ -9,6 +22,7 @@ interface EditorWrapperProps {
   setFileContent: (content: string) => void;
   isDirtyRef: React.RefObject<boolean>;
   defineCustomTheme: (monaco: typeof import("monaco-editor")) => void;
+  settings: AppSettings | null;
   onContentChange?: (newContent: string) => void;
 }
 
@@ -19,6 +33,7 @@ const EditorWrapper: React.FC<EditorWrapperProps> = ({
   setFileContent,
   isDirtyRef,
   defineCustomTheme,
+  settings,
   onContentChange,
 }) => (
   <Editor
@@ -40,13 +55,14 @@ const EditorWrapper: React.FC<EditorWrapperProps> = ({
     theme="xd-dark"
     options={{
       fontFamily: "JetBrains Mono, Fira Code, monospace",
-      fontSize: 14,
-      minimap: { enabled: false },
-      wordWrap: "on",
+      fontSize: settings?.editor_font_size || 14,
+      minimap: { enabled: settings?.editor_minimap || false },
+      wordWrap: settings?.editor_word_wrap ? "on" : "off",
       scrollBeyondLastLine: false,
-      lineNumbers: "on",
+      lineNumbers: settings?.editor_line_numbers ? "on" : "off",
       renderLineHighlight: "all",
       automaticLayout: true,
+      renderWhitespace: settings?.editor_render_whitespace ? "all" : "none",
     }}
   />
 );

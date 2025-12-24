@@ -30,6 +30,20 @@ pub struct AppState {
     current_process: std::sync::Arc<Mutex<Option<Child>>>,
 }
 
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct AppSettings {
+    pub editor_font_size: i32,
+    pub editor_word_wrap: bool,
+    pub editor_minimap: bool,
+    pub editor_line_numbers: bool,
+    pub editor_render_whitespace: bool,
+    pub terminal_font_size: i32,
+    pub sidebar_width: i32,
+    pub auto_save_enabled: bool,
+    pub auto_save_interval: i32,
+    pub theme: String,
+}
+
 #[tauri::command]
 fn read_directory(path: String, state: State<AppState>) -> Result<DirectoryContents, String> {
     let dir_path = Path::new(&path);
@@ -414,6 +428,57 @@ fn stop_terminal_command(state: State<AppState>) -> Result<(), String> {
     }
 }
 
+impl Default for AppSettings {
+    fn default() -> Self {
+        Self {
+            editor_font_size: 14,
+            editor_word_wrap: true,
+            editor_minimap: false,
+            editor_line_numbers: true,
+            editor_render_whitespace: false,
+            terminal_font_size: 13,
+            sidebar_width: 240,
+            auto_save_enabled: false,
+            auto_save_interval: 5000,
+            theme: "dark".to_string(),
+        }
+    }
+}
+
+fn get_settings_path() -> Result<PathBuf, String> {
+    let config_dir = dirs::config_dir().ok_or("Could not find config directory")?;
+    let app_config = config_dir.join("xds-code");
+
+    if !app_config.exists() {
+        std::fs::create_dir_all(&app_config)
+            .map_err(|e| format!("Failed to create config directory: {}", e))?;
+    }
+
+    Ok(app_config.join("settings.json"))
+}
+
+#[tauri::command]
+fn load_settings() -> Result<AppSettings, String> {
+    let settings_path = get_settings_path()?;
+
+    if settings_path.exists() {
+        let content = std::fs::read_to_string(&settings_path)
+            .map_err(|e| format!("Failed to read settings: {}", e))?;
+        serde_json::from_str(&content).map_err(|e| format!("Failed to parse settings: {}", e))
+    } else {
+        Ok(AppSettings::default())
+    }
+}
+
+#[tauri::command]
+fn save_settings(settings: AppSettings) -> Result<(), String> {
+    let settings_path = get_settings_path()?;
+    let json = serde_json::to_string_pretty(&settings)
+        .map_err(|e| format!("Failed to serialize settings: {}", e))?;
+
+    std::fs::write(&settings_path, json).map_err(|e| format!("Failed to write settings: {}", e))
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -437,6 +502,8 @@ pub fn run() {
             run_file,
             execute_terminal_command,
             stop_terminal_command,
+            load_settings,
+            save_settings,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

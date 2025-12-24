@@ -10,8 +10,22 @@ import MediaPreview from "./components/MediaPreview";
 import EditorWrapper from "./components/EditorWrapper";
 import StatusBar from "./components/StatusBar";
 import Terminal from "./components/Terminal";
+import SettingsPage from "./components/SettingsPage";
 import { isImageFile, isVideoFile } from "./utils/fileHelpers";
 import { useModal } from "./hooks/useModal";
+
+interface AppSettings {
+  editor_font_size: number;
+  editor_word_wrap: boolean;
+  editor_minimap: boolean;
+  editor_line_numbers: boolean;
+  editor_render_whitespace: boolean;
+  terminal_font_size: number;
+  sidebar_width: number;
+  auto_save_enabled: boolean;
+  auto_save_interval: number;
+  theme: string;
+}
 
 export default function App() {
   const { alert, confirm } = useModal();
@@ -26,8 +40,22 @@ export default function App() {
   const [projectStructureOpen, setProjectStructureOpen] = useState(true);
   const [selectedDir, setSelectedDir] = useState<string>("null");
   const [unsavedFiles, setUnsavedFiles] = useState<Set<string>>(new Set());
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [settings, setSettings] = useState<AppSettings | null>(null);
   const contentRef = useRef<string>("");
   const isDirtyRef = useRef<boolean>(false);
+
+  useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        const loaded = await invoke<AppSettings>("load_settings");
+        setSettings(loaded);
+      } catch (err) {
+        console.error("Failed to load settings:", err);
+      }
+    };
+    loadSettings();
+  }, []);
 
   const defineCustomTheme = (monaco: typeof import("monaco-editor")) => {
     monaco.editor.defineTheme("xd-dark", {
@@ -279,6 +307,14 @@ export default function App() {
         e.preventDefault();
         setProjectStructureOpen((prev) => !prev);
       }
+      if ((e.ctrlKey || e.metaKey) && e.key === ",") {
+        e.preventDefault();
+        setSettingsOpen((prev) => !prev);
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key === "o") {
+        e.preventDefault();
+        handleOpenFolder();
+      }
     },
     [handleSaveFile, closeTab, currentFile],
   );
@@ -309,6 +345,22 @@ export default function App() {
     [openTabs],
   );
 
+  const handleSettingsChange = async (
+    newSettings: AppSettings,
+  ): Promise<void> => {
+    setSettings(newSettings);
+  };
+
+  // Apply sidebar width setting
+  useEffect(() => {
+    if (settings?.sidebar_width) {
+      const sidebar = document.querySelector(".sidebar") as HTMLElement;
+      if (sidebar) {
+        sidebar.style.width = `${settings.sidebar_width}px`;
+      }
+    }
+  }, [settings?.sidebar_width]);
+
   return (
     <div className="app-container">
       <TitleBar handleOpenFolder={handleOpenFolder} selectedDir={selectedDir} />
@@ -338,6 +390,13 @@ export default function App() {
               <div
                 className={`editor ${terminalOpen ? "split" : ""}`}
                 data-tauri-drag-region
+                style={
+                  settings
+                    ? ({
+                        "--editor-font-size": `${settings.editor_font_size}px`,
+                      } as React.CSSProperties)
+                    : undefined
+                }
               >
                 {currentFile !== null &&
                   (mediaURL ? (
@@ -353,6 +412,7 @@ export default function App() {
                       setFileContent={setFileContent}
                       isDirtyRef={isDirtyRef}
                       defineCustomTheme={defineCustomTheme}
+                      settings={settings}
                       onContentChange={() => {
                         isDirtyRef.current = true;
                         if (currentFile && !unsavedFiles.has(currentFile)) {
@@ -367,7 +427,16 @@ export default function App() {
                   ))}
               </div>
               {terminalOpen && (
-                <div className="terminal-pane">
+                <div
+                  className="terminal-pane"
+                  style={
+                    settings
+                      ? ({
+                          "--terminal-font-size": `${settings.terminal_font_size}px`,
+                        } as React.CSSProperties)
+                      : undefined
+                  }
+                >
                   <Terminal currentDir={currentDir} onCtrlC={handleCtrlC} />
                 </div>
               )}
@@ -385,6 +454,12 @@ export default function App() {
           projectStructureOpen={projectStructureOpen}
         />
       )}
+
+      <SettingsPage
+        isOpen={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+        onSettingsChange={handleSettingsChange}
+      />
     </div>
   );
 }
