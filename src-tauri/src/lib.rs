@@ -497,6 +497,18 @@ fn save_settings(settings: AppSettings) -> Result<(), String> {
     std::fs::write(&settings_path, json).map_err(|e| format!("Failed to write settings: {}", e))
 }
 
+fn git_exe() -> &'static str {
+    #[cfg(target_os = "windows")]
+    {
+        "git.exe"
+    }
+
+    #[cfg(not(target_os = "windows"))]
+    {
+        "git"
+    }
+}
+
 #[tauri::command]
 fn get_git_status(repo_path: String) -> Result<Vec<GitFileInfo>, String> {
     let git_dir = std::path::Path::new(&repo_path).join(".git");
@@ -504,10 +516,18 @@ fn get_git_status(repo_path: String) -> Result<Vec<GitFileInfo>, String> {
         return Ok(Vec::new());
     }
 
-    let output = Command::new("git")
-        .arg("status")
+    let mut cmd = Command::new(git_exe());
+    cmd.arg("status")
         .arg("--porcelain")
         .current_dir(&repo_path)
+        .env("GIT_TERMINAL_PROMPT", "0")
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped());
+
+    #[cfg(target_os = "windows")]
+    cmd.creation_flags(0x08000000);
+
+    let output = cmd
         .output()
         .map_err(|e| format!("Failed to run git command: {}", e))?;
 
