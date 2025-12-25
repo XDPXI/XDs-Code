@@ -14,19 +14,6 @@ import SettingsPage from "./components/SettingsPage";
 import { isImageFile, isVideoFile } from "./utils/fileHelpers";
 import { useModal } from "./hooks/useModal";
 
-interface AppSettings {
-  editor_font_size: number;
-  editor_word_wrap: boolean;
-  editor_minimap: boolean;
-  editor_line_numbers: boolean;
-  editor_render_whitespace: boolean;
-  terminal_font_size: number;
-  sidebar_width: number;
-  auto_save_enabled: boolean;
-  auto_save_interval: number;
-  theme: string;
-}
-
 export default function App() {
   const { alert, confirm } = useModal();
   const [fileList, setFileList] = useState<FileEntry[]>([]);
