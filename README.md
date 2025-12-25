@@ -5,9 +5,35 @@
 
 ---
 
-## Building from Source
+# Installing
 
-### Application
+## macOS
+
+### Homebrew
+
+```bash
+brew tap XDPXI/tap && brew install --cask xds-code
+```
+
+### Installer
+
+Download the dmg for your version from [releases](https://github.com/XDPXI/XDs-Code/releases/latest)
+
+## Windows
+
+### Winget
+
+https://github.com/microsoft/winget-pkgs/pull/326220 
+
+### Installer
+
+Download the installer or zip from [releases](https://github.com/XDPXI/XDs-Code/releases/latest)
+
+---
+
+# Building from Source
+
+## App
 
 1. Clone the repository:
 
@@ -33,7 +59,7 @@
    bun run build
    ```
 
-### Website
+## Website
 
 1. Clone the repository:
 
