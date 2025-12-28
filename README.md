@@ -23,7 +23,9 @@ Download the dmg for your version from [releases](https://github.com/XDPXI/XDs-C
 
 ### Winget
 
-https://github.com/microsoft/winget-pkgs/pull/326220 
+```bash
+winget install xdpxi.xds-code
+```
 
 ### Installer
 
