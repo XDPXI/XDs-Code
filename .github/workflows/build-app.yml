@@ -9,7 +9,8 @@ permissions:
 
 jobs:
   build-windows:
-    runs-on: windows-2025
+    runs-on: windows-latest
+    if: startsWith(github.event.head_commit.message, '[release]')
     steps:
       - uses: actions/checkout@v6
 
@@ -63,6 +64,7 @@ jobs:
 
   build-macos-intel:
     runs-on: macos-15-intel
+    if: startsWith(github.event.head_commit.message, '[release]')
     steps:
       - uses: actions/checkout@v6
 
@@ -123,6 +125,7 @@ jobs:
 
   build-macos-arm:
     runs-on: macos-15
+    if: startsWith(github.event.head_commit.message, '[release]')
     steps:
       - uses: actions/checkout@v6
 
