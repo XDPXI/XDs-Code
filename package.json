@@ -8,7 +8,7 @@
     "build": "bun tauri build"
   },
   "dependencies": {
-    "@tauri-apps/api": "^2.9.1",
+    "@tauri-apps/api": "^2.10.0",
     "@tauri-apps/plugin-dialog": "^2.6.0",
     "@tauri-apps/plugin-opener": "^2.5.3",
     "xterm": "^5.3.0",
@@ -16,10 +16,10 @@
   },
   "devDependencies": {
     "@monaco-editor/react": "^4.7.0",
-    "@tauri-apps/cli": "^2.9.6",
+    "@tauri-apps/cli": "^2.10.0",
     "@types/react": "^19.2.10",
     "@types/react-dom": "^19.2.3",
-    "@vitejs/plugin-react": "^5.1.2",
+    "@vitejs/plugin-react": "^5.1.3",
     "detect-browser": "^5.3.0",
     "monaco-editor": "^0.55.1",
     "react": "^19.2.4",
