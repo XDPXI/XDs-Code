@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { Terminal as XTerm } from "xterm";
 import { FitAddon } from "xterm-addon-fit";
-import { invoke } from "@tauri-apps/api/src/core";
-import { listen } from "@tauri-apps/api/src/event";
+import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
 import "xterm/css/xterm.css";
 
 interface TerminalProps {

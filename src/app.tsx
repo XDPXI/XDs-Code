@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import "./styles/globals.css";
 import "./styles/fontawesome.css";
 import { open } from "@tauri-apps/plugin-dialog";
-import { invoke } from "@tauri-apps/api/src/core";
+import { invoke } from "@tauri-apps/api/core";
 import TitleBar from "./components/TitleBar";
 import Sidebar from "./components/Sidebar";
 import Tabs from "./components/Tabs";

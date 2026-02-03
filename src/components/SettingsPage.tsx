@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { invoke } from "@tauri-apps/api/src/core";
+import { invoke } from "@tauri-apps/api/core";
 import { useModal } from "../hooks/useModal";
 
 interface SettingsPageProps {
