@@ -6,7 +6,7 @@ import React, {
   useCallback,
 } from "react";
 import { getFileIcon } from "../utils/fileHelpers";
-import { invoke } from "@tauri-apps/api/core";
+import { invoke } from "@tauri-apps/api/src/core";
 import { useModal } from "../hooks/useModal";
 
 interface GitFileInfo {
