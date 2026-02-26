@@ -52,7 +52,7 @@ jobs:
         run: bun tauri build
 
       - name: Upload Windows artifacts
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: windows-app
           path: |
@@ -112,7 +112,7 @@ jobs:
           bun tauri build --target x86_64-apple-darwin
 
       - name: Upload macOS Intel artifacts
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: macos-intel-app
           path: |
@@ -173,7 +173,7 @@ jobs:
           bun tauri build
 
       - name: Upload macOS Apple Silicon artifacts
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: macos-arm-app
           path: |
