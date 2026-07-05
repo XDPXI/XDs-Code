@@ -1,0 +1,15 @@
+# Created using wingetcreate 1.10.3.0
+# yaml-language-server: $schema=https://aka.ms/winget-manifest.installer.1.10.0.schema.json
+
+PackageIdentifier: xdpxi.xds-code
+PackageVersion: 0.8.0
+InstallerLocale: en-US
+InstallerType: wix
+ProductCode: "{F8CD928F-4874-4AF3-8851-809BEB313AF2}"
+Installers:
+  - Architecture: x64
+    InstallerUrl: https://github.com/XDPXI/XDs-Code/releases/download/0.8.0/xds-code_0.8.0_windows-x64-msi.msi
+    InstallerSha256: 43C6C6960DB1EE5AB95BFBE87D427E58DBFC7EEF3232B3575E334804CEF83DB3
+ManifestType: installer
+ManifestVersion: 1.10.0
+ReleaseDate: 2025-12-25
