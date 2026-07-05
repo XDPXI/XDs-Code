@@ -30,6 +30,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { confirm } = useModal();
+  const currentYear = new Date().getFullYear();
 
   useEffect(() => {
     if (isOpen) {
@@ -358,7 +359,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
                 </p>
                 <p>Version 0.7.5</p>
                 <p>A code editor inspired by Zed and VSC made using Tauri</p>
-                <p className="about-copy">&copy; 2025 XDPXI</p>
+                <p className="about-copy">&copy; 2025-{currentYear} XDPXI</p>
               </div>
             </div>
 
