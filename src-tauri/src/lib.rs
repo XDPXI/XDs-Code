@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 use std::fs;
-use std::io::{BufRead, BufReader};
+use std::io::{BufRead, BufReader, Write};
 use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Stdio};
 use std::sync::Mutex;
@@ -27,7 +27,8 @@ pub struct DirectoryContents {
 #[derive(Clone)]
 pub struct AppState {
     current_dir: std::sync::Arc<Mutex<Option<PathBuf>>>,
-    current_process: std::sync::Arc<Mutex<Option<Child>>>,
+    shell_child: std::sync::Arc<Mutex<Option<Child>>>,
+    shell_stdin: std::sync::Arc<Mutex<Option<std::process::ChildStdin>>>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -312,104 +313,100 @@ fn run_file(path: String) -> Result<(), String> {
 }
 
 #[tauri::command]
-fn execute_terminal_command(
+fn init_terminal_shell(
     app: AppHandle,
-    command: String,
-    cwd: Option<String>,
     state: State<AppState>,
+    cwd: Option<String>,
 ) -> Result<(), String> {
-    let working_dir = cwd.unwrap_or_else(|| {
-        std::env::current_dir()
-            .unwrap_or_default()
-            .to_string_lossy()
-            .into_owned()
-    });
+    // Drop stdin to close the pipe, which will cause the old shell to exit
+    *state.shell_stdin.lock().unwrap() = None;
+
+    // Kill any existing shell process
+    {
+        let mut child_guard = state.shell_child.lock().unwrap();
+        if let Some(mut child) = child_guard.take() {
+            let _ = child.kill();
+            let _ = child.wait();
+        }
+    }
+
+    let working_dir = cwd
+        .filter(|s| !s.is_empty())
+        .unwrap_or_else(|| {
+            std::env::current_dir()
+                .unwrap_or_default()
+                .to_string_lossy()
+                .into_owned()
+        });
 
     #[cfg(target_os = "windows")]
     let mut child = Command::new("powershell")
-        .arg("-Command")
-        .arg(&command)
+        .args(&["-NoExit", "-NonInteractive", "-NoLogo"])
         .current_dir(&working_dir)
+        .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .creation_flags(0x08000000)
         .spawn()
-        .map_err(|e| format!("Failed to spawn process: {}", e))?;
+        .map_err(|e| format!("Failed to spawn shell: {}", e))?;
 
     #[cfg(target_os = "macos")]
     let mut child = Command::new("zsh")
-        .arg("-c")
-        .arg(&command)
         .current_dir(&working_dir)
+        .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .spawn()
-        .map_err(|e| format!("Failed to spawn process: {}", e))?;
+        .map_err(|e| format!("Failed to spawn shell: {}", e))?;
 
     #[cfg(target_os = "linux")]
     let mut child = Command::new("bash")
-        .arg("-c")
-        .arg(&command)
         .current_dir(&working_dir)
+        .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .spawn()
-        .map_err(|e| format!("Failed to spawn process: {}", e))?;
+        .map_err(|e| format!("Failed to spawn shell: {}", e))?;
 
     let stdout = child.stdout.take().unwrap();
     let stderr = child.stderr.take().unwrap();
+    let mut stdin = child.stdin.take().unwrap();
 
-    *state.current_process.lock().unwrap() = Some(child);
+    // Set environment for better compatibility
+    #[cfg(not(target_os = "windows"))]
+    {
+        let _ = writeln!(stdin, "export TERM=xterm-256color");
+        let _ = stdin.flush();
+    }
+    #[cfg(target_os = "windows")]
+    {
+        let _ = writeln!(stdin, "$ErrorActionPreference = 'Continue'");
+        let _ = stdin.flush();
+    }
 
-    let app_stdout = app.clone();
-    let app_stderr = app.clone();
-    let app_finish = app.clone();
+    *state.shell_child.lock().unwrap() = Some(child);
+    *state.shell_stdin.lock().unwrap() = Some(stdin);
 
+    // Stream stdout; detect sentinel to know when each command finishes
+    let app_out = app.clone();
     thread::spawn(move || {
         let reader = BufReader::new(stdout);
         for line in reader.lines().flatten() {
-            let _ = app_stdout.emit("terminal-output", line);
+            if let Some(rest) = line.strip_prefix("___CMD_DONE___") {
+                // payload: "exitcode___/current/working/dir"
+                let _ = app_out.emit("command-finished", rest.to_string());
+            } else {
+                let _ = app_out.emit("terminal-output", line);
+            }
         }
     });
 
+    // Stream stderr
+    let app_err = app;
     thread::spawn(move || {
         let reader = BufReader::new(stderr);
         for line in reader.lines().flatten() {
-            let _ = app_stderr.emit("terminal-error", line);
-        }
-    });
-
-    let current_process = state.current_process.clone();
-    thread::spawn(move || {
-        loop {
-            let mut process = current_process.lock().unwrap();
-
-            if let Some(ref mut child) = *process {
-                match child.try_wait() {
-                    Ok(Some(_status)) => {
-                        // Process finished
-                        drop(process);
-                        let _ = app_finish.emit("command-finished", "");
-                        break;
-                    }
-                    Ok(None) => {
-                        // Process still running
-                        drop(process);
-                        thread::sleep(std::time::Duration::from_millis(500));
-                    }
-                    Err(_) => {
-                        // Error waiting, assume finished
-                        drop(process);
-                        let _ = app_finish.emit("command-finished", "");
-                        break;
-                    }
-                }
-            } else {
-                // No process
-                drop(process);
-                let _ = app_finish.emit("command-finished", "");
-                break;
-            }
+            let _ = app_err.emit("terminal-error", line);
         }
     });
 
@@ -417,33 +414,60 @@ fn execute_terminal_command(
 }
 
 #[tauri::command]
-fn stop_terminal_command(state: State<AppState>) -> Result<(), String> {
-    let mut process = state.current_process.lock().unwrap();
+fn execute_terminal_command(
+    command: String,
+    _cwd: Option<String>,
+    state: State<AppState>,
+) -> Result<(), String> {
+    let mut stdin_guard = state.shell_stdin.lock().unwrap();
 
-    if let Some(mut child) = process.take() {
-        #[cfg(target_os = "windows")]
-        {
-            std::process::Command::new("taskkill")
-                .args(&["/PID", &child.id().to_string(), "/T", "/F"])
-                .output()
-                .map_err(|e| format!("Failed to kill process: {}", e))?;
-            let _ = child.kill();
-        }
+    if let Some(ref mut stdin) = *stdin_guard {
+        writeln!(stdin, "{}", command)
+            .map_err(|e| format!("Failed to write command: {}", e))?;
 
+        // Sentinel: written after the command so we know when it finishes and what dir we're in
         #[cfg(not(target_os = "windows"))]
-        {
-            use nix::sys::signal::{kill, Signal};
-            use nix::unistd::Pid;
+        writeln!(stdin, "echo \"___CMD_DONE___$?___$(pwd)\"")
+            .map_err(|e| format!("Failed to write sentinel: {}", e))?;
 
-            kill(Pid::from_raw(child.id() as i32), Signal::SIGTERM)
-                .map_err(|e| format!("Failed to kill process: {}", e))?;
-            let _ = child.kill();
-        }
+        #[cfg(target_os = "windows")]
+        writeln!(
+            stdin,
+            "Write-Host \"___CMD_DONE___$($LASTEXITCODE)___$(Get-Location)\""
+        )
+        .map_err(|e| format!("Failed to write sentinel: {}", e))?;
+
+        stdin
+            .flush()
+            .map_err(|e| format!("Failed to flush stdin: {}", e))?;
 
         Ok(())
     } else {
-        Err("No process running".to_string())
+        Err("Shell not initialized".to_string())
     }
+}
+
+#[tauri::command]
+fn stop_terminal_command(state: State<AppState>) -> Result<(), String> {
+    // Drop stdin to signal shell to exit
+    *state.shell_stdin.lock().unwrap() = None;
+
+    let mut child_guard = state.shell_child.lock().unwrap();
+    if let Some(mut child) = child_guard.take() {
+        #[cfg(target_os = "windows")]
+        {
+            let _ = std::process::Command::new("taskkill")
+                .args(&["/PID", &child.id().to_string(), "/T", "/F"])
+                .output();
+        }
+        #[cfg(not(target_os = "windows"))]
+        {
+            let _ = child.kill();
+            let _ = child.wait();
+        }
+    }
+
+    Ok(())
 }
 
 impl Default for AppSettings {
@@ -579,7 +603,8 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .manage(AppState {
             current_dir: std::sync::Arc::new(Mutex::new(None)),
-            current_process: std::sync::Arc::new(Mutex::new(None)),
+            shell_child: std::sync::Arc::new(Mutex::new(None)),
+            shell_stdin: std::sync::Arc::new(Mutex::new(None)),
         })
         .invoke_handler(tauri::generate_handler![
             read_directory,
@@ -593,6 +618,7 @@ pub fn run() {
             is_binary_file,
             open_in_file_manager,
             run_file,
+            init_terminal_shell,
             execute_terminal_command,
             stop_terminal_command,
             load_settings,

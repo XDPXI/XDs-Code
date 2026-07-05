@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { Terminal as XTerm } from "xterm";
 import { FitAddon } from "xterm-addon-fit";
 import { invoke } from "@tauri-apps/api/core";
@@ -16,12 +16,14 @@ const Terminal: React.FC<TerminalProps> = ({ currentDir, onCtrlC }) => {
   const terminalRef = useRef<HTMLDivElement>(null);
   const xtermRef = useRef<XTerm | null>(null);
   const fitAddonRef = useRef<FitAddon | null>(null);
-  const [busy, setBusy] = useState(false);
+  const busyRef = useRef(false);
   const commandBufferRef = useRef("");
   const commandHistoryRef = useRef<string[]>([]);
   const historyIndexRef = useRef(-1);
   const unlistenersRef = useRef<Array<() => void>>([]);
   const lineCountRef = useRef(0);
+  const localDirRef = useRef<string>(currentDir || "~");
+  const ctrlCPendingRef = useRef(false);
 
   const getFontSize = (): number => {
     const size = getComputedStyle(document.documentElement).getPropertyValue(
@@ -63,15 +65,24 @@ const Terminal: React.FC<TerminalProps> = ({ currentDir, onCtrlC }) => {
     xtermRef.current = xterm;
     fitAddonRef.current = fitAddon;
 
-    displayPrompt();
-
     let mounted = true;
 
     const setupListeners = async () => {
+      // Initialize persistent shell session
+      try {
+        await invoke("init_terminal_shell", {
+          cwd: localDirRef.current || undefined,
+        });
+      } catch (err) {
+        xterm.writeln(`\x1b[31mFailed to start shell: ${err}\x1b[0m`);
+      }
+
+      displayPrompt();
+
       const unlisteners = await Promise.all([
         listen<string>("terminal-output", handleOutputEvent),
         listen<string>("terminal-error", handleErrorEvent),
-        listen("command-finished", handleFinishEvent),
+        listen<string>("command-finished", handleFinishEvent),
       ]);
 
       if (mounted) {
@@ -101,11 +112,13 @@ const Terminal: React.FC<TerminalProps> = ({ currentDir, onCtrlC }) => {
       resizeObserver.disconnect();
       xterm.dispose();
       unlistenersRef.current.forEach((unlisten) => unlisten());
+      // Kill the shell on unmount
+      invoke("stop_terminal_command").catch(() => {});
     };
   }, []);
 
   const displayPrompt = () => {
-    const cwdLabel = currentDir && currentDir !== "null" ? currentDir : "~";
+    const cwdLabel = localDirRef.current || "~";
     xtermRef.current?.write(`\x1b[32m${cwdLabel}\x1b[0m \x1b[36m$\x1b[0m `);
   };
 
@@ -137,8 +150,26 @@ const Terminal: React.FC<TerminalProps> = ({ currentDir, onCtrlC }) => {
     }
   };
 
-  const handleFinishEvent = () => {
-    setBusy(false);
+  const handleFinishEvent = (event: any) => {
+    // Ignore stale finish events after Ctrl+C (shell was restarted)
+    if (ctrlCPendingRef.current) {
+      ctrlCPendingRef.current = false;
+      return;
+    }
+
+    // Parse "exitcode___/path/to/cwd" from payload
+    const payload = (event.payload as string) || "";
+    if (payload) {
+      const sepIdx = payload.indexOf("___");
+      if (sepIdx !== -1) {
+        const newPwd = payload.substring(sepIdx + 3).trim();
+        if (newPwd) {
+          localDirRef.current = newPwd;
+        }
+      }
+    }
+
+    busyRef.current = false;
     commandBufferRef.current = "";
     historyIndexRef.current = -1;
     displayPrompt();
@@ -149,12 +180,25 @@ const Terminal: React.FC<TerminalProps> = ({ currentDir, onCtrlC }) => {
 
     // Ctrl+C
     if (code === 3) {
-      if (busy) {
+      if (busyRef.current) {
         xterm.write("^C\r\n");
-        setBusy(false);
-        displayPrompt();
+        busyRef.current = false;
         commandBufferRef.current = "";
         historyIndexRef.current = -1;
+        ctrlCPendingRef.current = true;
+
+        // Kill shell and restart in current directory so the interrupted command dies
+        invoke("stop_terminal_command")
+          .catch(() => {})
+          .finally(() => {
+            invoke("init_terminal_shell", {
+              cwd: localDirRef.current || undefined,
+            }).catch((err) => {
+              xterm.writeln(`\x1b[31mFailed to restart shell: ${err}\x1b[0m`);
+            });
+          });
+
+        displayPrompt();
 
         if (onCtrlC) {
           onCtrlC();
@@ -166,7 +210,7 @@ const Terminal: React.FC<TerminalProps> = ({ currentDir, onCtrlC }) => {
       return;
     }
 
-    if (busy) return;
+    if (busyRef.current) return;
 
     // Arrow Up - History Previous
     if (data === "\x1b[A") {
@@ -222,15 +266,15 @@ const Terminal: React.FC<TerminalProps> = ({ currentDir, onCtrlC }) => {
         commandHistoryRef.current.push(command);
         historyIndexRef.current = -1;
 
-        setBusy(true);
+        busyRef.current = true;
         commandBufferRef.current = "";
 
         invoke("execute_terminal_command", {
           command,
-          cwd: currentDir || undefined,
+          cwd: localDirRef.current || undefined,
         }).catch((err) => {
           xterm.write(`\x1b[31mError: ${err}\x1b[0m\r\n`);
-          setBusy(false);
+          busyRef.current = false;
           displayPrompt();
           commandBufferRef.current = "";
           historyIndexRef.current = -1;
