@@ -330,14 +330,12 @@ fn init_terminal_shell(
         }
     }
 
-    let working_dir = cwd
-        .filter(|s| !s.is_empty())
-        .unwrap_or_else(|| {
-            std::env::current_dir()
-                .unwrap_or_default()
-                .to_string_lossy()
-                .into_owned()
-        });
+    let working_dir = cwd.filter(|s| !s.is_empty()).unwrap_or_else(|| {
+        std::env::current_dir()
+            .unwrap_or_default()
+            .to_string_lossy()
+            .into_owned()
+    });
 
     #[cfg(target_os = "windows")]
     let mut child = Command::new("powershell")
@@ -422,8 +420,7 @@ fn execute_terminal_command(
     let mut stdin_guard = state.shell_stdin.lock().unwrap();
 
     if let Some(ref mut stdin) = *stdin_guard {
-        writeln!(stdin, "{}", command)
-            .map_err(|e| format!("Failed to write command: {}", e))?;
+        writeln!(stdin, "{}", command).map_err(|e| format!("Failed to write command: {}", e))?;
 
         // Sentinel: written after the command so we know when it finishes and what dir we're in
         #[cfg(not(target_os = "windows"))]
