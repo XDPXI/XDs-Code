@@ -357,7 +357,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
                   <strong>XD's Code</strong>
                 </p>
                 <p>Version 0.7.5</p>
-                <p>A code editor inspired by Visual Studio Code</p>
+                <p>A code editor inspired by Zed and VSC made using Tauri</p>
                 <p className="about-copy">&copy; 2025 XDPXI</p>
               </div>
             </div>

@@ -1,7 +1,7 @@
 ---
 
 <h1 align="center">XD's Code</h1>
-<h4 align="center">XD's Code is a code editor that is inspired by VSC.</h4>
+<h4 align="center">XD's Code is a code editor that is inspired by Zed and VSC made using Tauri.</h4>
 
 ---
 

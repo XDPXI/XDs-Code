@@ -1,7 +1,7 @@
 [package]
 name = "xds-code"
 version = "0.7.5"
-description = "XD's Code is a code editor that is inspired by VSC."
+description = "XD's Code is a code editor that is inspired by Zed and VSC made using Tauri."
 authors = ["XDPXI"]
 edition = "2024"
 
