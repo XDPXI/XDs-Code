@@ -36,7 +36,7 @@ const TitleBar: React.FC<TitleBarProps> = ({
       <div className="titlebar-content" data-tauri-drag-region>
         <div className="titlebar-title" data-tauri-drag-region>
           <img
-            src={theme === "windows-xp" ? "/xp-icon.png" : "/icon.png"}
+            src={theme === "windows-xp" ? "/xp-icon.png" : (theme === "legacy" ? "/old-icon.png" : "/icon.png")}
             className="titlebar-icon"
             data-tauri-drag-region
           />

@@ -293,13 +293,14 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
                     onChange={(e) =>
                       handleSettingChange(
                         "theme",
-                        e.target.value as "one-dark" | "windows-xp",
+                        e.target.value as "one-dark" | "windows-xp" | "legacy",
                       )
                     }
                     className="setting-select"
                   >
                     <option value="one-dark">One Dark</option>
                     <option value="windows-xp">Windows XP</option>
+                    <option value="legacy">Legacy</option>
                   </select>
                 </div>
               </div>

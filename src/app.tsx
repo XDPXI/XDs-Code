@@ -124,6 +124,36 @@ export default function App() {
         "editorIndentGuide.activeBackground": "#4e5054",
       },
     });
+
+    monaco.editor.defineTheme("legacy-dark", {
+      base: "vs-dark",
+      inherit: true,
+      rules: [],
+      colors: {
+        // Background
+        "editor.background": "#1e1e1e",
+        "editorGutter.background": "#1e1e1e",
+
+        // Line Highlight
+        "editor.lineHighlightBorder": "#FFFFFF00",
+        "editor.lineHighlightBackground": "#282828",
+
+        // Line Numbers
+        "editorLineNumber.foreground": "#3a3a3a",
+        "editorLineNumber.activeForeground": "#d4d4d4",
+
+        // Selection
+        "editor.selectionBackground": "#3a3a5a",
+        "editor.inactiveSelectionBackground": "#3a3a5a80",
+
+        // Cursor
+        "editorCursor.foreground": "#ff6b6b",
+
+        // Other UI
+        "editorIndentGuide.background": "#2b2b2b",
+        "editorIndentGuide.activeBackground": "#3a3a3a",
+      },
+    });
   };
 
   const openTab = useCallback((file: OpenFile) => {

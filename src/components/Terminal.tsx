@@ -61,6 +61,30 @@ const defaultTerminalTheme = {
   brightWhite: "#cbcfd4",
 };
 
+const legacyTerminalTheme = {
+  background: "#1e1e1e",
+  foreground: "#d4d4d4",
+  cursor: "#ff6b6b",
+  cursorAccent: "#1e1e1e",
+  selectionBackground: "rgba(255, 107, 107, 0.25)",
+  black: "#1e1e1e",
+  red: "#ff6b6b",
+  green: "#89c37b",
+  yellow: "#d19a66",
+  blue: "#74ade8",
+  magenta: "#c678dd",
+  cyan: "#56b6c2",
+  white: "#d4d4d4",
+  brightBlack: "#3a3a3a",
+  brightRed: "#ff8888",
+  brightGreen: "#a8d58d",
+  brightYellow: "#fabd2f",
+  brightBlue: "#8ec3f0",
+  brightMagenta: "#d3869b",
+  brightCyan: "#7ec8d3",
+  brightWhite: "#ffffff",
+};
+
 const Terminal: React.FC<TerminalProps> = ({ currentDir, onCtrlC, theme }) => {
   const terminalRef = useRef<HTMLDivElement>(null);
   const xtermRef = useRef<XTerm | null>(null);
@@ -86,15 +110,25 @@ const Terminal: React.FC<TerminalProps> = ({ currentDir, onCtrlC, theme }) => {
 
   useEffect(() => {
     if (!xtermRef.current) return;
-    xtermRef.current.options.theme = theme === "windows-xp" ? xpTerminalTheme : defaultTerminalTheme;
+    const themeMap: Record<string, typeof defaultTerminalTheme> = {
+      "windows-xp": xpTerminalTheme,
+      legacy: legacyTerminalTheme,
+      "one-dark": defaultTerminalTheme,
+    };
+    xtermRef.current.options.theme = themeMap[theme || "one-dark"] || defaultTerminalTheme;
   }, [theme]);
 
   useEffect(() => {
+    const themeMap: Record<string, typeof defaultTerminalTheme> = {
+      "windows-xp": xpTerminalTheme,
+      legacy: legacyTerminalTheme,
+      "one-dark": defaultTerminalTheme,
+    };
     const xterm = new XTerm({
       cursorBlink: true,
       fontFamily: "JetBrains Mono, Fira Code, monospace",
       fontSize: getFontSize(),
-      theme: theme === "windows-xp" ? xpTerminalTheme : defaultTerminalTheme,
+      theme: themeMap[theme || "one-dark"] || defaultTerminalTheme,
       allowProposedApi: true,
       convertEol: true,
     });
@@ -355,7 +389,7 @@ const Terminal: React.FC<TerminalProps> = ({ currentDir, onCtrlC, theme }) => {
         flex: 1,
         width: "100%",
         height: "100%",
-        backgroundColor: theme === "windows-xp" ? "#000000" : "#282c33",
+        backgroundColor: theme === "windows-xp" ? "#000000" : (theme === "legacy" ? "#1e1e1e" : "#282c33"),
       }}
     />
   );
