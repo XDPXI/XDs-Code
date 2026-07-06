@@ -401,6 +401,11 @@ fn init_terminal_shell(
     thread::spawn(move || {
         let reader = BufReader::new(stdout);
         for line in reader.lines().flatten() {
+            // Skip PowerShell prompt echoes (e.g., "PS D:\path> command")
+            if line.starts_with("PS ") && line.contains('>') {
+                continue;
+            }
+
             if let Some(rest) = line.strip_prefix("___CMD_DONE___") {
                 // payload: "exitcode___/current/working/dir"
                 let _ = app_out.emit("command-finished", rest.to_string());
