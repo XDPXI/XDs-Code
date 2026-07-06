@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import "./styles/globals.css";
+import "./styles/legacy.css";
+import "./styles/windows-xp.css";
 import "./styles/fontawesome.css";
 import { open } from "@tauri-apps/plugin-dialog";
 import { invoke } from "@tauri-apps/api/core";
@@ -291,11 +293,7 @@ export default function App() {
           path: entry.path,
         });
 
-        if (
-          isBinary &&
-          !isImageFile(entry.name) &&
-          !isVideoFile(entry.name)
-        ) {
+        if (isBinary && !isImageFile(entry.name) && !isVideoFile(entry.name)) {
           await alert("This file appears to be binary and cannot be opened.");
           return;
         }
@@ -423,109 +421,117 @@ export default function App() {
 
   return (
     <>
-      <TitleBar handleOpenFolder={handleOpenFolder} selectedDir={selectedDir} theme={settings?.theme} />
+      <TitleBar
+        handleOpenFolder={handleOpenFolder}
+        selectedDir={selectedDir}
+        theme={settings?.theme}
+      />
       <div className="app-container">
-      <div className="content-container" data-tauri-drag-region>
-        {projectStructureOpen && (
-          <Sidebar
-            rootContents={rootContents}
-            handleFileClick={handleFileClick}
-            handleOpenFolder={handleOpenFolder}
-            selectedDir={selectedDir}
-            refreshDirectory={refreshDirectory}
-            sidebarDesign={settings?.sidebar_design || "modern"}
-            theme={settings?.theme}
-            onFolderNavigate={(folderPath) => {
-              setSelectedDir(folderPath);
-              readDirectory(folderPath);
-            }}
-          />
-        )}
-
-        {selectedDir !== "null" && (
-          <div className="editor-area">
-            <Tabs
-              openTabs={openTabs}
-              currentFile={currentFile}
-              handleTabClick={handleTabClick}
-              closeTab={closeTab}
-              unsavedFiles={unsavedFiles}
+        <div className="content-container" data-tauri-drag-region>
+          {projectStructureOpen && (
+            <Sidebar
+              rootContents={rootContents}
+              handleFileClick={handleFileClick}
+              handleOpenFolder={handleOpenFolder}
+              selectedDir={selectedDir}
+              refreshDirectory={refreshDirectory}
+              sidebarDesign={settings?.sidebar_design || "modern"}
+              theme={settings?.theme}
+              onFolderNavigate={(folderPath) => {
+                setSelectedDir(folderPath);
+                readDirectory(folderPath);
+              }}
             />
-            <div className="editor-terminal-container">
-              <div
-                className={`editor ${terminalOpen ? "split" : ""}`}
-                data-tauri-drag-region
-                style={
-                  settings
-                    ? ({
-                        "--editor-font-size": `${settings.editor_font_size}px`,
-                      } as React.CSSProperties)
-                    : undefined
-                }
-              >
-                {currentFile !== null &&
-                  (mediaURL ? (
-                    <MediaPreview
-                      mediaURL={mediaURL}
-                      currentFile={currentFile}
-                    />
-                  ) : (
-                    <EditorWrapper
-                      currentFile={currentFile}
-                      fileContent={fileContent}
-                      contentRef={contentRef}
-                      setFileContent={setFileContent}
-                      isDirtyRef={isDirtyRef}
-                      defineCustomTheme={defineCustomTheme}
-                      settings={settings}
-                      onContentChange={() => {
-                        isDirtyRef.current = true;
-                        if (currentFile && !unsavedFiles.has(currentFile)) {
-                          setUnsavedFiles((prev) => {
-                            const newSet = new Set(prev);
-                            newSet.add(currentFile);
-                            return newSet;
-                          });
-                        }
-                      }}
-                    />
-                  ))}
-              </div>
-              {terminalOpen && (
+          )}
+
+          {selectedDir !== "null" && (
+            <div className="editor-area">
+              <Tabs
+                openTabs={openTabs}
+                currentFile={currentFile}
+                handleTabClick={handleTabClick}
+                closeTab={closeTab}
+                unsavedFiles={unsavedFiles}
+              />
+              <div className="editor-terminal-container">
                 <div
-                  className="terminal-pane"
+                  className={`editor ${terminalOpen ? "split" : ""}`}
+                  data-tauri-drag-region
                   style={
                     settings
                       ? ({
-                          "--terminal-font-size": `${settings.terminal_font_size}px`,
+                          "--editor-font-size": `${settings.editor_font_size}px`,
                         } as React.CSSProperties)
                       : undefined
                   }
                 >
-                  <Terminal currentDir={selectedDir} onCtrlC={handleCtrlC} theme={settings?.theme} />
+                  {currentFile !== null &&
+                    (mediaURL ? (
+                      <MediaPreview
+                        mediaURL={mediaURL}
+                        currentFile={currentFile}
+                      />
+                    ) : (
+                      <EditorWrapper
+                        currentFile={currentFile}
+                        fileContent={fileContent}
+                        contentRef={contentRef}
+                        setFileContent={setFileContent}
+                        isDirtyRef={isDirtyRef}
+                        defineCustomTheme={defineCustomTheme}
+                        settings={settings}
+                        onContentChange={() => {
+                          isDirtyRef.current = true;
+                          if (currentFile && !unsavedFiles.has(currentFile)) {
+                            setUnsavedFiles((prev) => {
+                              const newSet = new Set(prev);
+                              newSet.add(currentFile);
+                              return newSet;
+                            });
+                          }
+                        }}
+                      />
+                    ))}
                 </div>
-              )}
+                {terminalOpen && (
+                  <div
+                    className="terminal-pane"
+                    style={
+                      settings
+                        ? ({
+                            "--terminal-font-size": `${settings.terminal_font_size}px`,
+                          } as React.CSSProperties)
+                        : undefined
+                    }
+                  >
+                    <Terminal
+                      currentDir={selectedDir}
+                      onCtrlC={handleCtrlC}
+                      theme={settings?.theme}
+                    />
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
+          )}
+        </div>
+        {selectedDir !== "null" && (
+          <StatusBar
+            onTerminalToggle={() => setTerminalOpen((prev) => !prev)}
+            onProjectStructureToggle={() =>
+              setProjectStructureOpen((prev) => !prev)
+            }
+            terminalOpen={terminalOpen}
+            projectStructureOpen={projectStructureOpen}
+          />
         )}
-      </div>
-      {selectedDir !== "null" && (
-        <StatusBar
-          onTerminalToggle={() => setTerminalOpen((prev) => !prev)}
-          onProjectStructureToggle={() =>
-            setProjectStructureOpen((prev) => !prev)
-          }
-          terminalOpen={terminalOpen}
-          projectStructureOpen={projectStructureOpen}
-        />
-      )}
 
-      <SettingsPage
-        isOpen={settingsOpen}
-        onClose={() => setSettingsOpen(false)}
-        onSettingsChange={handleSettingsChange}
-      />
-    </div>
+        <SettingsPage
+          isOpen={settingsOpen}
+          onClose={() => setSettingsOpen(false)}
+          onSettingsChange={handleSettingsChange}
+        />
+      </div>
     </>
   );
 }
