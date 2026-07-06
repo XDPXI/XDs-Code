@@ -8,11 +8,60 @@ import "xterm/css/xterm.css";
 interface TerminalProps {
   currentDir: string;
   onCtrlC?: () => void;
+  theme?: string;
 }
 
 const MAX_TERMINAL_LINES = 1000;
 
-const Terminal: React.FC<TerminalProps> = ({ currentDir, onCtrlC }) => {
+const xpTerminalTheme = {
+  background: "#000000",
+  foreground: "#c0c0c0",
+  cursor: "#c0c0c0",
+  cursorAccent: "#000000",
+  selectionBackground: "rgba(192, 192, 192, 0.3)",
+  black: "#000000",
+  red: "#800000",
+  green: "#008000",
+  yellow: "#808000",
+  blue: "#000080",
+  magenta: "#800080",
+  cyan: "#008080",
+  white: "#c0c0c0",
+  brightBlack: "#808080",
+  brightRed: "#ff0000",
+  brightGreen: "#00ff00",
+  brightYellow: "#ffff00",
+  brightBlue: "#0000ff",
+  brightMagenta: "#ff00ff",
+  brightCyan: "#00ffff",
+  brightWhite: "#ffffff",
+};
+
+const defaultTerminalTheme = {
+  background: "#282c33",
+  foreground: "#cbcfd4",
+  cursor: "#74ade8",
+  cursorAccent: "#282c33",
+  selectionBackground: "rgba(116, 173, 232, 0.25)",
+  black: "#282c33",
+  red: "#e06c75",
+  green: "#89c37b",
+  yellow: "#d19a66",
+  blue: "#74ade8",
+  magenta: "#c678dd",
+  cyan: "#56b6c2",
+  white: "#9ca2af",
+  brightBlack: "#464b57",
+  brightRed: "#f48771",
+  brightGreen: "#a8d58d",
+  brightYellow: "#fabd2f",
+  brightBlue: "#8ec3f0",
+  brightMagenta: "#d3869b",
+  brightCyan: "#7ec8d3",
+  brightWhite: "#cbcfd4",
+};
+
+const Terminal: React.FC<TerminalProps> = ({ currentDir, onCtrlC, theme }) => {
   const terminalRef = useRef<HTMLDivElement>(null);
   const xtermRef = useRef<XTerm | null>(null);
   const fitAddonRef = useRef<FitAddon | null>(null);
@@ -36,35 +85,16 @@ const Terminal: React.FC<TerminalProps> = ({ currentDir, onCtrlC }) => {
   };
 
   useEffect(() => {
+    if (!xtermRef.current) return;
+    xtermRef.current.options.theme = theme === "windows-xp" ? xpTerminalTheme : defaultTerminalTheme;
+  }, [theme]);
+
+  useEffect(() => {
     const xterm = new XTerm({
       cursorBlink: true,
       fontFamily: "JetBrains Mono, Fira Code, monospace",
       fontSize: getFontSize(),
-      theme: {
-        background: "#282c33",
-        foreground: "#cbcfd4",
-        cursor: "#74ade8",
-        cursorAccent: "#282c33",
-        selectionBackground: "rgba(116, 173, 232, 0.25)",
-
-        black: "#282c33",
-        red: "#e06c75",
-        green: "#89c37b",
-        yellow: "#d19a66",
-        blue: "#74ade8",
-        magenta: "#c678dd",
-        cyan: "#56b6c2",
-        white: "#9ca2af",
-
-        brightBlack: "#464b57",
-        brightRed: "#f48771",
-        brightGreen: "#a8d58d",
-        brightYellow: "#fabd2f",
-        brightBlue: "#8ec3f0",
-        brightMagenta: "#d3869b",
-        brightCyan: "#7ec8d3",
-        brightWhite: "#cbcfd4",
-      },
+      theme: theme === "windows-xp" ? xpTerminalTheme : defaultTerminalTheme,
       allowProposedApi: true,
       convertEol: true,
     });
@@ -325,7 +355,7 @@ const Terminal: React.FC<TerminalProps> = ({ currentDir, onCtrlC }) => {
         flex: 1,
         width: "100%",
         height: "100%",
-        backgroundColor: "#282c33",
+        backgroundColor: theme === "windows-xp" ? "#000000" : "#282c33",
       }}
     />
   );

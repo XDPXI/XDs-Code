@@ -18,7 +18,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   sidebar_width: 240,
   auto_save_enabled: false,
   auto_save_interval: 5000,
-  theme: "dark",
+  theme: "one-dark",
   sidebar_design: "modern",
 };
 
@@ -281,6 +281,25 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
                   >
                     <option value="legacy">Legacy</option>
                     <option value="modern">Modern</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="setting-item">
+                <label className="setting-label">Theme</label>
+                <div className="setting-input-group">
+                  <select
+                    value={settings.theme}
+                    onChange={(e) =>
+                      handleSettingChange(
+                        "theme",
+                        e.target.value as "one-dark" | "windows-xp",
+                      )
+                    }
+                    className="setting-select"
+                  >
+                    <option value="one-dark">One Dark</option>
+                    <option value="windows-xp">Windows XP</option>
                   </select>
                 </div>
               </div>

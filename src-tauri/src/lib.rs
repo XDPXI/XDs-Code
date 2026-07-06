@@ -31,6 +31,10 @@ pub struct AppState {
     shell_stdin: std::sync::Arc<Mutex<Option<std::process::ChildStdin>>>,
 }
 
+fn default_theme() -> String {
+    "one-dark".to_string()
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct AppSettings {
     pub editor_font_size: i32,
@@ -42,6 +46,7 @@ pub struct AppSettings {
     pub sidebar_width: i32,
     pub auto_save_enabled: bool,
     pub auto_save_interval: i32,
+    #[serde(default = "default_theme")]
     pub theme: String,
 }
 
@@ -479,7 +484,7 @@ impl Default for AppSettings {
             sidebar_width: 240,
             auto_save_enabled: false,
             auto_save_interval: 5000,
-            theme: "dark".to_string(),
+            theme: "one-dark".to_string(),
         }
     }
 }

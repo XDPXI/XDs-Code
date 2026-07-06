@@ -4,11 +4,13 @@ import React from "react";
 interface TitleBarProps {
   handleOpenFolder: () => void;
   selectedDir: string;
+  theme?: string;
 }
 
 const TitleBar: React.FC<TitleBarProps> = ({
   handleOpenFolder,
   selectedDir,
+  theme,
 }) => {
   const appWindow = getCurrentWindow();
 
@@ -34,7 +36,7 @@ const TitleBar: React.FC<TitleBarProps> = ({
       <div className="titlebar-content" data-tauri-drag-region>
         <div className="titlebar-title" data-tauri-drag-region>
           <img
-            src="/icon.png"
+            src={theme === "windows-xp" ? "/xp-icon.png" : "/icon.png"}
             className="titlebar-icon"
             data-tauri-drag-region
           />

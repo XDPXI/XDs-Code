@@ -384,9 +384,17 @@ export default function App() {
     }
   }, [settings?.sidebar_width]);
 
+  // Apply theme setting
+  useEffect(() => {
+    if (settings?.theme) {
+      document.documentElement.setAttribute("data-theme", settings.theme);
+    }
+  }, [settings?.theme]);
+
   return (
-    <div className="app-container">
-      <TitleBar handleOpenFolder={handleOpenFolder} selectedDir={selectedDir} />
+    <>
+      <TitleBar handleOpenFolder={handleOpenFolder} selectedDir={selectedDir} theme={settings?.theme} />
+      <div className="app-container">
       <div className="content-container" data-tauri-drag-region>
         {projectStructureOpen && (
           <Sidebar
@@ -396,6 +404,7 @@ export default function App() {
             selectedDir={selectedDir}
             refreshDirectory={refreshDirectory}
             sidebarDesign={settings?.sidebar_design || "modern"}
+            theme={settings?.theme}
             onFolderNavigate={(folderPath) => {
               setSelectedDir(folderPath);
               readDirectory(folderPath);
@@ -463,7 +472,7 @@ export default function App() {
                       : undefined
                   }
                 >
-                  <Terminal currentDir={selectedDir} onCtrlC={handleCtrlC} />
+                  <Terminal currentDir={selectedDir} onCtrlC={handleCtrlC} theme={settings?.theme} />
                 </div>
               )}
             </div>
@@ -487,5 +496,6 @@ export default function App() {
         onSettingsChange={handleSettingsChange}
       />
     </div>
+    </>
   );
 }

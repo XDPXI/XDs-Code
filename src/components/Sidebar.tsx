@@ -22,6 +22,7 @@ interface SidebarProps {
   refreshDirectory: () => void;
   sidebarDesign?: "legacy" | "modern";
   onFolderNavigate?: (folderPath: string) => void;
+  theme?: string;
 }
 
 const Sidebar: React.FC<SidebarProps> = ({
@@ -32,6 +33,7 @@ const Sidebar: React.FC<SidebarProps> = ({
   refreshDirectory,
   sidebarDesign = "modern",
   onFolderNavigate,
+  theme,
 }) => {
   const [contextMenu, setContextMenu] = useState<ContextMenu | null>(null);
   const [gitStatus, setGitStatus] = useState<Map<string, GitFileInfo>>(
@@ -378,13 +380,14 @@ const Sidebar: React.FC<SidebarProps> = ({
 
     if (!gitInfo) return undefined;
 
+    const isXP = theme === "windows-xp";
     switch (gitInfo.status) {
       case "untracked":
-        return "#a1c181";
+        return isXP ? "#3d6b22" : "#a1c181";
       case "modified":
-        return "#dec184";
+        return isXP ? "#8c6520" : "#dec184";
       case "staged":
-        return "#8FAECF";
+        return isXP ? "#2a5480" : "#8FAECF";
       default:
         return undefined;
     }
@@ -471,6 +474,7 @@ const Sidebar: React.FC<SidebarProps> = ({
         selectedDir={selectedDir}
         refreshDirectory={refreshDirectory}
         onFolderNavigate={handleLegacyFolderNavigate}
+        theme={theme}
       />
     );
   }
