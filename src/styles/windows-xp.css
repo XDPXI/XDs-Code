@@ -27,7 +27,7 @@ html[data-theme="windows-xp"],
 }
 
 [data-theme="windows-xp"] .app-container {
-    border: 3px solid #0054e3;
+    border: 3px solid #003dd7;
     border-top: 0;
     overflow: hidden;
     box-sizing: border-box;
