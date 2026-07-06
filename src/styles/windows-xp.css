@@ -44,8 +44,6 @@ html[data-theme="windows-xp"],
 [data-theme="windows-xp"] .titlebar {
     background: linear-gradient(
         180deg,
-        #0997ff 1%,
-        #0053ee 2%,
         #0997ff 8%,
         #0997ff 40%,
         #06f 88%,
