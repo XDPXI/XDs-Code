@@ -85,6 +85,30 @@ const legacyTerminalTheme = {
   brightWhite: "#ffffff",
 };
 
+const oneLightTerminalTheme = {
+  background: "#f5f5f5",
+  foreground: "#383a42",
+  cursor: "#0184bc",
+  cursorAccent: "#f5f5f5",
+  selectionBackground: "rgba(1, 132, 188, 0.25)",
+  black: "#f5f5f5",
+  red: "#e45649",
+  green: "#4cb34a",
+  yellow: "#c18401",
+  blue: "#0184bc",
+  magenta: "#7d5e7a",
+  cyan: "#0997b3",
+  white: "#383a42",
+  brightBlack: "#a0a1a7",
+  brightRed: "#e45649",
+  brightGreen: "#50a14f",
+  brightYellow: "#c18401",
+  brightBlue: "#4078f2",
+  brightMagenta: "#8b6b8f",
+  brightCyan: "#0997b3",
+  brightWhite: "#383a42",
+};
+
 const Terminal: React.FC<TerminalProps> = ({ currentDir, onCtrlC, theme }) => {
   const terminalRef = useRef<HTMLDivElement>(null);
   const xtermRef = useRef<XTerm | null>(null);
@@ -114,6 +138,7 @@ const Terminal: React.FC<TerminalProps> = ({ currentDir, onCtrlC, theme }) => {
       "windows-xp": xpTerminalTheme,
       legacy: legacyTerminalTheme,
       "one-dark": defaultTerminalTheme,
+      "one-light": oneLightTerminalTheme,
     };
     xtermRef.current.options.theme = themeMap[theme || "one-dark"] || defaultTerminalTheme;
   }, [theme]);
@@ -123,6 +148,7 @@ const Terminal: React.FC<TerminalProps> = ({ currentDir, onCtrlC, theme }) => {
       "windows-xp": xpTerminalTheme,
       legacy: legacyTerminalTheme,
       "one-dark": defaultTerminalTheme,
+      "one-light": oneLightTerminalTheme,
     };
     const xterm = new XTerm({
       cursorBlink: true,
@@ -389,7 +415,7 @@ const Terminal: React.FC<TerminalProps> = ({ currentDir, onCtrlC, theme }) => {
         flex: 1,
         width: "100%",
         height: "100%",
-        backgroundColor: theme === "windows-xp" ? "#000000" : (theme === "legacy" ? "#1e1e1e" : "#282c33"),
+        backgroundColor: theme === "windows-xp" ? "#000000" : (theme === "legacy" ? "#1e1e1e" : (theme === "one-light" ? "#f5f5f5" : "#282c33")),
       }}
     />
   );

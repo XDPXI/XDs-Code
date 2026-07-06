@@ -40,6 +40,6 @@ interface AppSettings {
   sidebar_width: number;
   auto_save_enabled: boolean;
   auto_save_interval: number;
-  theme: "one-dark" | "windows-xp" | "legacy";
+  theme: "one-dark" | "one-light" | "windows-xp" | "legacy";
   sidebar_design: "legacy" | "modern";
 }

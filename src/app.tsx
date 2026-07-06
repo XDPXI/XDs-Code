@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import "./styles/globals.css";
 import "./styles/legacy.css";
 import "./styles/windows-xp.css";
+import "./styles/one-light.css";
 import "./styles/fontawesome.css";
 import { open } from "@tauri-apps/plugin-dialog";
 import { invoke } from "@tauri-apps/api/core";
@@ -154,6 +155,36 @@ export default function App() {
         // Other UI
         "editorIndentGuide.background": "#2b2b2b",
         "editorIndentGuide.activeBackground": "#3a3a3a",
+      },
+    });
+
+    monaco.editor.defineTheme("one-light", {
+      base: "vs",
+      inherit: true,
+      rules: [],
+      colors: {
+        // Background
+        "editor.background": "#f5f5f5",
+        "editorGutter.background": "#f5f5f5",
+
+        // Line Highlight
+        "editor.lineHighlightBorder": "#00000000",
+        "editor.lineHighlightBackground": "#f0f0f0",
+
+        // Line Numbers
+        "editorLineNumber.foreground": "#c0c0c0",
+        "editorLineNumber.activeForeground": "#383a42",
+
+        // Selection
+        "editor.selectionBackground": "#c8d4f0",
+        "editor.inactiveSelectionBackground": "#d4d4d480",
+
+        // Cursor
+        "editorCursor.foreground": "#0184bc",
+
+        // Other UI
+        "editorIndentGuide.background": "#e5e5e6",
+        "editorIndentGuide.activeBackground": "#dcdcdd",
       },
     });
   };

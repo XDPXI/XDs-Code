@@ -39,7 +39,7 @@ const EditorWrapper: React.FC<EditorWrapperProps> = ({
       onContentChange?.(newContent);
     }}
     beforeMount={defineCustomTheme}
-    theme={settings?.theme === "windows-xp" ? "vs" : (settings?.theme === "legacy" ? "vs-dark" : "xd-dark")}
+    theme={settings?.theme === "windows-xp" ? "vs" : (settings?.theme === "one-light" ? "one-light" : (settings?.theme === "legacy" ? "vs-dark" : "xd-dark"))}
     options={{
       fontFamily: "JetBrains Mono, Fira Code, monospace",
       fontSize: settings?.editor_font_size || 14,
