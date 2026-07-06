@@ -11,8 +11,9 @@
 
 | Version | Windows            | macOS                    | Website                  |
 |---------|--------------------|--------------------------|--------------------------|
-| 0.7     | :white_check_mark: | :white_check_mark:       |                          |
-| 0.6     | :x:                | :x:                      | :warning:                |
+| 0.8     | :white_check_mark: | :white_check_mark:       |                          |
+| 0.7     | :x:                | :x:                      |                          |
+| 0.6     | :x:                | :x:                      | :x:                      |
 | 0.5     | :x:                | :x:                      | :x:                      |
 | 0.4     | :x:                | :x:                      | :x:                      |
 | 0.3     | :x:                |                          |                          |
