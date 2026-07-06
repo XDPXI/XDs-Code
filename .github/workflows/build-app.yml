@@ -2,189 +2,46 @@ name: Build Tauri App
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
-  build-windows:
-    runs-on: windows-latest
-    if: startsWith(github.event.head_commit.message, '[release]')
+  create-release:
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.buildnum.outputs.tag }}
+      name: ${{ steps.buildnum.outputs.name }}
     steps:
       - uses: actions/checkout@v7
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v6
         with:
-          node-version: 24
+          fetch-depth: 0
 
-      - name: Install bun
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
-
-      - name: Cache bun dependencies
-        uses: actions/cache@v6
-        with:
-          path: ~/.bun/install/cache
-          key: ${{ runner.os }}-bun-${{ hashFiles('**/bun.lockb') }}
-          restore-keys: |
-            ${{ runner.os }}-bun-
-
-      - name: Cache Rust dependencies
-        uses: actions/cache@v6
-        with:
-          path: |
-            ~/.cargo/bin/
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            src-tauri/target/
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-
-
-      - name: Install dependencies
-        run: bun install
-
-      - name: Build Tauri app (Windows)
-        run: bun tauri build
-
-      - name: Upload Windows artifacts
-        uses: actions/upload-artifact@v7
-        with:
-          name: windows-app
-          path: |
-            src-tauri/target/release/bundle/msi/*.msi
-            src-tauri/target/release/bundle/nsis/*.exe
-            src-tauri/target/release/*.exe
-          if-no-files-found: error
-          retention-days: 30
-
-  build-macos-intel:
-    runs-on: macos-15-intel
-    if: startsWith(github.event.head_commit.message, '[release]')
-    steps:
-      - uses: actions/checkout@v7
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v6
-        with:
-          node-version: 24
-
-      - name: Install bun
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
-
-      - name: Cache bun dependencies
-        uses: actions/cache@v6
-        with:
-          path: ~/.bun/install/cache
-          key: ${{ runner.os }}-bun-${{ hashFiles('**/bun.lockb') }}
-          restore-keys: |
-            ${{ runner.os }}-bun-
-
-      - name: Cache Rust dependencies
-        uses: actions/cache@v6
-        with:
-          path: |
-            ~/.cargo/bin/
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            src-tauri/target/
-          key: ${{ runner.os }}-cargo-x86_64-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-x86_64-
-            ${{ runner.os }}-cargo-
-
-      - name: Install dependencies
-        run: bun install
-
-      - name: Add Rust target for Intel macOS
-        run: rustup target add x86_64-apple-darwin
-
-      - name: Build Tauri app for macOS Intel (x86_64)
+      - name: Get commit number
+        id: buildnum
         run: |
-          echo "🏗️ Building for macOS Intel (x86_64)..."
-          bun tauri build --target x86_64-apple-darwin
+          COUNT=$(git rev-list --count HEAD)
+          echo "tag=build-$COUNT" >> $GITHUB_OUTPUT
+          echo "name=Build $COUNT" >> $GITHUB_OUTPUT
 
-      - name: Upload macOS Intel artifacts
-        uses: actions/upload-artifact@v7
-        with:
-          name: macos-intel-app
-          path: |
-            src-tauri/target/release/bundle/dmg/*.dmg
-            src-tauri/target/release/bundle/macos/*.app
-            src-tauri/target/x86_64-apple-darwin/release/bundle/dmg/*.dmg
-            src-tauri/target/x86_64-apple-darwin/release/bundle/macos/*.app
-          if-no-files-found: error
-          retention-days: 30
-
-  build-macos-arm:
-    runs-on: macos-15
-    if: startsWith(github.event.head_commit.message, '[release]')
-    steps:
-      - uses: actions/checkout@v7
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v6
-        with:
-          node-version: 24
-
-      - name: Install bun
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
-
-      - name: Cache bun dependencies
-        uses: actions/cache@v6
-        with:
-          path: ~/.bun/install/cache
-          key: ${{ runner.os }}-bun-${{ hashFiles('**/bun.lockb') }}
-          restore-keys: |
-            ${{ runner.os }}-bun-
-
-      - name: Cache Rust dependencies
-        uses: actions/cache@v6
-        with:
-          path: |
-            ~/.cargo/bin/
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            src-tauri/target/
-          key: ${{ runner.os }}-cargo-aarch64-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-aarch64-
-            ${{ runner.os }}-cargo-
-
-      - name: Install dependencies
-        run: bun install
-
-      - name: Add Rust target for Apple Silicon macOS
-        run: rustup target add aarch64-apple-darwin
-
-      - name: Build Tauri app for macOS Apple Silicon (arm64)
+      - name: Get commit message
+        id: commit
         run: |
-          echo "🏗️ Building for macOS Apple Silicon (arm64)..."
-          bun tauri build
+          echo "msg<<EOF" >> $GITHUB_OUTPUT
+          git log -1 --pretty=%s >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
 
-      - name: Upload macOS Apple Silicon artifacts
-        uses: actions/upload-artifact@v7
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v3
         with:
-          name: macos-arm-app
-          path: |
-            src-tauri/target/release/bundle/dmg/*.dmg
-            src-tauri/target/release/bundle/macos/*.app
-            src-tauri/target/aarch64-apple-darwin/release/bundle/dmg/*.dmg
-            src-tauri/target/aarch64-apple-darwin/release/bundle/macos/*.app
-          if-no-files-found: error
-          retention-days: 30
+          name: ${{ steps.buildnum.outputs.name }}
+          tag_name: ${{ steps.buildnum.outputs.tag }}
+          prerelease: true
+          body: ${{ steps.commit.outputs.msg }}
 
   build-linux:
+    needs: create-release
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -240,13 +97,178 @@ jobs:
       - name: Build Tauri app (Linux)
         run: bun tauri build
 
-      - name: Upload Linux artifacts
-        uses: actions/upload-artifact@v7
+      - name: Upload Linux artifacts to release
+        uses: softprops/action-gh-release@v3
         with:
-          name: linux-app
-          path: |
+          tag_name: ${{ needs.create-release.outputs.tag }}
+          files: |
             src-tauri/target/release/bundle/deb/*.deb
             src-tauri/target/release/bundle/rpm/*.rpm
             src-tauri/target/release/bundle/appimage/*.AppImage
-          if-no-files-found: error
-          retention-days: 30
+
+  build-windows:
+    needs: create-release
+    if: startsWith(github.event.head_commit.message, '[release]')
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+
+      - name: Install bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Cache bun dependencies
+        uses: actions/cache@v6
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ hashFiles('**/bun.lockb') }}
+          restore-keys: |
+            ${{ runner.os }}-bun-
+
+      - name: Cache Rust dependencies
+        uses: actions/cache@v6
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            src-tauri/target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Build Tauri app (Windows)
+        run: bun tauri build
+
+      - name: Upload Windows artifacts to release
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: ${{ needs.create-release.outputs.tag }}
+          files: |
+            src-tauri/target/release/bundle/msi/*.msi
+            src-tauri/target/release/bundle/nsis/*.exe
+            src-tauri/target/release/*.exe
+
+  build-macos-intel:
+    needs: create-release
+    if: startsWith(github.event.head_commit.message, '[release]')
+    runs-on: macos-15-intel
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+
+      - name: Install bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Cache bun dependencies
+        uses: actions/cache@v6
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ hashFiles('**/bun.lockb') }}
+          restore-keys: |
+            ${{ runner.os }}-bun-
+
+      - name: Cache Rust dependencies
+        uses: actions/cache@v6
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            src-tauri/target/
+          key: ${{ runner.os }}-cargo-x86_64-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-x86_64-
+            ${{ runner.os }}-cargo-
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Add Rust target for Intel macOS
+        run: rustup target add x86_64-apple-darwin
+
+      - name: Build Tauri app for macOS Intel (x86_64)
+        run: bun tauri build --target x86_64-apple-darwin
+
+      - name: Upload macOS Intel artifacts to release
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: ${{ needs.create-release.outputs.tag }}
+          files: |
+            src-tauri/target/x86_64-apple-darwin/release/bundle/dmg/*.dmg
+            src-tauri/target/x86_64-apple-darwin/release/bundle/macos/*.app
+
+  build-macos-arm:
+    needs: create-release
+    if: startsWith(github.event.head_commit.message, '[release]')
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+
+      - name: Install bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Cache bun dependencies
+        uses: actions/cache@v6
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ hashFiles('**/bun.lockb') }}
+          restore-keys: |
+            ${{ runner.os }}-bun-
+
+      - name: Cache Rust dependencies
+        uses: actions/cache@v6
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            src-tauri/target/
+          key: ${{ runner.os }}-cargo-aarch64-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-aarch64-
+            ${{ runner.os }}-cargo-
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Add Rust target for Apple Silicon macOS
+        run: rustup target add aarch64-apple-darwin
+
+      - name: Build Tauri app for macOS Apple Silicon (arm64)
+        run: bun tauri build
+
+      - name: Upload macOS ARM artifacts to release
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: ${{ needs.create-release.outputs.tag }}
+          files: |
+            src-tauri/target/aarch64-apple-darwin/release/bundle/dmg/*.dmg
+            src-tauri/target/aarch64-apple-darwin/release/bundle/macos/*.app
+            src-tauri/target/release/bundle/dmg/*.dmg
+            src-tauri/target/release/bundle/macos/*.app
