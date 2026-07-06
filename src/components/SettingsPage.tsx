@@ -306,32 +306,30 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
                 </label>
               </div>
 
-              {settings.auto_save_enabled && (
-                <div className="setting-item">
-                  <label className="setting-label">
-                    Auto Save Interval
-                    <span className="setting-value">
-                      {settings.auto_save_interval / 1000}s
-                    </span>
-                  </label>
-                  <div className="setting-input-group">
-                    <input
-                      type="range"
-                      min="1000"
-                      max="30000"
-                      step="1000"
-                      value={settings.auto_save_interval}
-                      onChange={(e) =>
-                        handleSettingChange(
-                          "auto_save_interval",
-                          parseInt(e.target.value),
-                        )
-                      }
-                      className="setting-range"
-                    />
-                  </div>
+              <div className="setting-item">
+                <label className="setting-label">
+                  Auto Save Interval
+                  <span className="setting-value">
+                    {settings.auto_save_interval / 1000}s
+                  </span>
+                </label>
+                <div className="setting-input-group">
+                  <input
+                    type="range"
+                    min="1000"
+                    max="30000"
+                    step="1000"
+                    value={settings.auto_save_interval}
+                    onChange={(e) =>
+                      handleSettingChange(
+                        "auto_save_interval",
+                        parseInt(e.target.value),
+                      )
+                    }
+                    className="setting-range"
+                  />
                 </div>
-              )}
+              </div>
             </div>
 
             {/* Keyboard Shortcuts */}
