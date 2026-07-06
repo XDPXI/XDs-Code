@@ -19,6 +19,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   auto_save_enabled: false,
   auto_save_interval: 5000,
   theme: "dark",
+  sidebar_design: "modern",
 };
 
 const SettingsPage: React.FC<SettingsPageProps> = ({
@@ -262,6 +263,25 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
                     }
                     className="setting-range"
                   />
+                </div>
+              </div>
+
+              <div className="setting-item">
+                <label className="setting-label">Sidebar Design</label>
+                <div className="setting-input-group">
+                  <select
+                    value={settings.sidebar_design}
+                    onChange={(e) =>
+                      handleSettingChange(
+                        "sidebar_design",
+                        e.target.value as "legacy" | "modern",
+                      )
+                    }
+                    className="setting-select"
+                  >
+                    <option value="legacy">Legacy</option>
+                    <option value="modern">Modern</option>
+                  </select>
                 </div>
               </div>
             </div>

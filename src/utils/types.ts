@@ -41,4 +41,5 @@ interface AppSettings {
   auto_save_enabled: boolean;
   auto_save_interval: number;
   theme: string;
+  sidebar_design: "legacy" | "modern";
 }

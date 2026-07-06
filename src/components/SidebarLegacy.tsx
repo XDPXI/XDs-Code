@@ -1,4 +1,5 @@
 import React, {
+  useMemo,
   useState,
   useEffect,
   useRef,
@@ -7,64 +8,37 @@ import React, {
 import { invoke } from "@tauri-apps/api/core";
 import { useModal } from "../hooks/useModal";
 import TreeNode from "./TreeNode";
-import SidebarLegacy from "./SidebarLegacy";
 
 interface GitFileInfo {
   path: string;
   status: "untracked" | "modified" | "staged" | "unmodified";
 }
 
-interface SidebarProps {
-  rootContents: FileEntry[];
+interface SidebarLegacyProps {
+  fileList: FileEntry[];
+  dirStack: string[];
+  goBackDirectory: () => void;
   handleFileClick: (entry: FileEntry) => void;
-  handleOpenFolder: () => void;
   selectedDir: string;
   refreshDirectory: () => void;
-  sidebarDesign?: "legacy" | "modern";
   onFolderNavigate?: (folderPath: string) => void;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({
-  rootContents,
+const SidebarLegacy: React.FC<SidebarLegacyProps> = ({
+  fileList,
+  dirStack,
+  goBackDirectory,
   handleFileClick,
-  handleOpenFolder,
   selectedDir,
   refreshDirectory,
-  sidebarDesign = "modern",
   onFolderNavigate,
 }) => {
   const [contextMenu, setContextMenu] = useState<ContextMenu | null>(null);
   const [gitStatus, setGitStatus] = useState<Map<string, GitFileInfo>>(
     new Map(),
   );
-  const [expandedFolders, setExpandedFolders] = useState<Set<string>>(
-    new Set(),
-  );
-  const [folderCache, setFolderCache] = useState<Map<string, FileEntry[]>>(
-    new Map(),
-  );
-  const [dirStack, setDirStack] = useState<string[]>([]);
   const contextMenuRef = useRef<HTMLDivElement>(null);
   const { alert, prompt, confirm } = useModal();
-
-  const handleLegacyFolderNavigate = useCallback(
-    (folderPath: string) => {
-      if (sidebarDesign === "legacy") {
-        setDirStack((prev) => [...prev, selectedDir]);
-      }
-      onFolderNavigate?.(folderPath);
-    },
-    [sidebarDesign, selectedDir, onFolderNavigate],
-  );
-
-  const goBackDirectory = useCallback(() => {
-    const newStack = [...dirStack];
-    const parent = newStack.pop();
-    if (parent) {
-      setDirStack(newStack);
-      onFolderNavigate?.(parent);
-    }
-  }, [dirStack, onFolderNavigate]);
 
   useEffect(() => {
     if (selectedDir === "null") return;
@@ -80,19 +54,9 @@ const Sidebar: React.FC<SidebarProps> = ({
             repoPath: selectedDir,
           });
 
-          console.log("Git status response:", status);
-          console.log("Selected dir:", selectedDir);
-          console.log("Root contents:", rootContents);
-
           const statusMap = new Map<string, GitFileInfo>();
 
           status.forEach((file) => {
-            console.log(
-              "Processing git file:",
-              file.path,
-              "Status:",
-              file.status,
-            );
             statusMap.set(file.path, file);
             const filename = file.path.split(/[/\\]/).pop();
             if (filename) {
@@ -100,7 +64,6 @@ const Sidebar: React.FC<SidebarProps> = ({
             }
           });
 
-          console.log("Final status map:", statusMap);
           setGitStatus(statusMap);
         } else {
           setGitStatus(new Map());
@@ -126,42 +89,24 @@ const Sidebar: React.FC<SidebarProps> = ({
         setContextMenu(null);
       }
     };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
-    if (contextMenu) {
-      document.addEventListener("mousedown", handleClickOutside);
-    }
-
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [contextMenu]);
-
-  const handleContextMenu = (e: React.MouseEvent, entry?: FileEntry) => {
-    e.preventDefault();
-    e.stopPropagation();
-
-    if (!entry) {
+  const handleContextMenu = useCallback(
+    (e: React.MouseEvent, entry?: FileEntry) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const type = !entry ? "empty" : entry.is_directory ? "folder" : "file";
       setContextMenu({
         x: e.clientX,
         y: e.clientY,
-        type: "empty",
-      });
-    } else if (entry.is_directory) {
-      setContextMenu({
-        x: e.clientX,
-        y: e.clientY,
-        type: "folder",
+        type,
         entry,
       });
-    } else {
-      setContextMenu({
-        x: e.clientX,
-        y: e.clientY,
-        type: "file",
-        entry,
-      });
-    }
-  };
+    },
+    [],
+  );
 
   const handleCreateFile = useCallback(
     async (targetDir?: string) => {
@@ -174,19 +119,6 @@ const Sidebar: React.FC<SidebarProps> = ({
       try {
         const filePath = `${dir}/${fileName}`;
         await invoke("create_file", { path: filePath });
-
-        // Invalidate cache for parent directory
-        setFolderCache((prev) => {
-          const newMap = new Map(prev);
-          newMap.delete(dir);
-          return newMap;
-        });
-
-        // Ensure parent folder is expanded if it's nested
-        if (dir !== selectedDir) {
-          setExpandedFolders((prev) => new Set(prev).add(dir));
-        }
-
         refreshDirectory();
       } catch (error) {
         alert(`Failed to create file: ${error}`);
@@ -206,19 +138,6 @@ const Sidebar: React.FC<SidebarProps> = ({
       try {
         const folderPath = `${dir}/${folderName}`;
         await invoke("create_directory", { path: folderPath });
-
-        // Invalidate cache for parent directory
-        setFolderCache((prev) => {
-          const newMap = new Map(prev);
-          newMap.delete(dir);
-          return newMap;
-        });
-
-        // Ensure parent folder is expanded if it's nested
-        if (dir !== selectedDir) {
-          setExpandedFolders((prev) => new Set(prev).add(dir));
-        }
-
         refreshDirectory();
       } catch (error) {
         alert(`Failed to create folder: ${error}`);
@@ -229,152 +148,73 @@ const Sidebar: React.FC<SidebarProps> = ({
 
   const handleOpenInFileManager = useCallback(async () => {
     if (!contextMenu?.entry && !selectedDir) {
-      setContextMenu(null);
       return;
     }
-    const pathToOpen = contextMenu?.entry?.path || selectedDir;
-    setContextMenu(null);
+
+    const path = contextMenu?.entry?.path || selectedDir;
 
     try {
-      await invoke("open_in_file_manager", { path: pathToOpen });
+      await invoke("open_in_file_manager", { path });
     } catch (error) {
       alert(`Failed to open in file manager: ${error}`);
-    }
-  }, [contextMenu, selectedDir, alert]);
-
-  const handleRunFile = useCallback(async () => {
-    if (!contextMenu?.entry) {
-      setContextMenu(null);
-      return;
-    }
-
-    const filePath = contextMenu.entry.path;
-    setContextMenu(null);
-
-    try {
-      await invoke("run_file", { path: filePath });
-    } catch (error) {
-      alert(`Failed to run file: ${error}`);
     }
   }, [contextMenu, alert]);
 
   const handleDeleteFile = useCallback(async () => {
     if (!contextMenu?.entry) {
+      return;
+    }
+
+    const file = contextMenu.entry;
+    const message = file.is_directory
+      ? `Delete folder '${file.name}'? This action cannot be undone.`
+      : `Delete file '${file.name}'? This action cannot be undone.`;
+
+    const result = await confirm(message, "Cancel", "Delete");
+
+    if (result) {
       setContextMenu(null);
-      return;
-    }
-
-    const entryToDelete = contextMenu.entry;
-    setContextMenu(null);
-
-    const result = await confirm(
-      `Delete file '${entryToDelete.name}'? This action cannot be undone.`,
-      "Cancel",
-      "Delete",
-    );
-
-    if (!result) {
-      return;
-    }
-
-    try {
-      await invoke("delete_file", { path: entryToDelete.path });
-      refreshDirectory();
-    } catch (error) {
-      alert(`Failed to delete file: ${error}`);
-    }
-  }, [contextMenu, alert, refreshDirectory, confirm]);
-
-  const handleDeleteFolder = useCallback(async () => {
-    if (!contextMenu?.entry) {
-      setContextMenu(null);
-      return;
-    }
-
-    const entryToDelete = contextMenu.entry;
-    setContextMenu(null);
-
-    const result = await confirm(
-      `Delete folder '${entryToDelete.name}'? This action cannot be undone.`,
-      "Cancel",
-      "Delete",
-    );
-
-    if (!result) {
-      return;
-    }
-
-    try {
-      await invoke("delete_file", { path: entryToDelete.path });
-      refreshDirectory();
-    } catch (error) {
-      alert(`Failed to delete folder: ${error}`);
-    }
-  }, [contextMenu, alert, refreshDirectory, confirm]);
-
-  const handleToggleFolder = useCallback(
-    async (path: string) => {
-      // If already in cache, just toggle expanded state
-      if (folderCache.has(path)) {
-        setExpandedFolders((prev) => {
-          const newSet = new Set(prev);
-          if (newSet.has(path)) {
-            newSet.delete(path);
-          } else {
-            newSet.add(path);
-          }
-          return newSet;
-        });
-        return;
-      }
-
-      // Load folder contents and add to cache
       try {
-        const result = await invoke<DirectoryContents>("read_directory", {
-          path,
-        });
-        setFolderCache((prev) => {
-          const newMap = new Map(prev);
-          newMap.set(path, result.entries);
-          return newMap;
-        });
-
-        // Toggle expanded state
-        setExpandedFolders((prev) => {
-          const newSet = new Set(prev);
-          newSet.add(path);
-          return newSet;
-        });
+        await invoke("delete_file", { path: file.path });
+        refreshDirectory();
       } catch (error) {
-        console.error(`Failed to load folder ${path}:`, error);
-        alert(`Failed to load folder: ${error}`);
+        alert(`Failed to delete: ${error}`);
       }
-    },
-    [folderCache, alert],
-  );
+    }
+  }, [contextMenu, alert, refreshDirectory, confirm]);
+
+  const handleRunFile = useCallback(async () => {
+    if (!contextMenu?.entry) {
+      return;
+    }
+
+    const file = contextMenu.entry;
+
+    setContextMenu(null);
+
+    try {
+      await invoke("run_file", { path: file.path });
+    } catch (error) {
+      alert(`Failed to run file: ${error}`);
+    }
+  }, [contextMenu, alert]);
 
   const getGitStatusColor = (entry: FileEntry): string | undefined => {
     let gitInfo = gitStatus.get(entry.path);
-
-    console.log("Checking entry:", entry.path, "Found:", gitInfo);
 
     if (!gitInfo && selectedDir !== "null") {
       const relativePath = entry.path
         .replace(selectedDir, "")
         .replace(/^[/\\]/, "");
-      console.log("Trying relative path:", relativePath);
       gitInfo = gitStatus.get(relativePath);
     }
 
     if (!gitInfo) {
       const fileName = entry.path.split(/[/\\]/).pop();
-      console.log("Trying filename:", fileName);
       if (fileName) {
         gitInfo = gitStatus.get(fileName);
       }
     }
-
-    console.log("Final git info for", entry.path, ":", gitInfo);
 
     if (!gitInfo) return undefined;
 
@@ -390,103 +230,70 @@ const Sidebar: React.FC<SidebarProps> = ({
     }
   };
 
-  const renderTreeChildren = (
-    entry: FileEntry,
-    depth: number,
-    expanded: Set<string>,
-    cache: Map<string, FileEntry[]>,
-  ): React.ReactNode => {
-    const gitColor = getGitStatusColor(entry);
-    const children = cache.get(entry.path) || [];
-    const isExpanded = expanded.has(entry.path);
+  const renderItems = useMemo(() => {
+    const items = [];
 
-    return (
-      <React.Fragment key={entry.path}>
+    if (dirStack.length > 0) {
+      items.push(
+        <div
+          key="back-button"
+          className="tree-node"
+          style={{ paddingLeft: "0px" }}
+          onClick={goBackDirectory}
+        >
+          <button
+            className="tree-icon-btn"
+            onClick={goBackDirectory}
+            type="button"
+            aria-label="Go to parent directory"
+          >
+            <i className="fa-solid fa-arrow-up" />
+          </button>
+          <button className="tree-name-btn" onClick={goBackDirectory}>
+            ..
+          </button>
+        </div>,
+      );
+    }
+
+    for (const entry of fileList) {
+      const gitColor = getGitStatusColor(entry);
+
+      items.push(
         <TreeNode
+          key={entry.path}
           entry={entry}
           absolutePath={entry.path}
-          isExpanded={isExpanded}
-          depth={depth}
-          onToggleExpand={handleToggleFolder}
+          isExpanded={false}
+          depth={0}
+          onToggleExpand={async (path) => {
+            if (entry.is_directory) {
+              onFolderNavigate?.(path);
+            }
+          }}
           onFileClick={handleFileClick}
           onContextMenu={handleContextMenu}
           gitStatusColor={gitColor}
-        />
-        {isExpanded &&
-          entry.is_directory &&
-          children.map((child) =>
-            renderTreeChildren(child, depth + 1, expanded, cache),
-          )}
-      </React.Fragment>
-    );
-  };
-
-  const renderTree = useCallback(() => {
-    const items = [];
-
-    for (const entry of rootContents) {
-      const gitColor = getGitStatusColor(entry);
-      const children = folderCache.get(entry.path) || [];
-      const isExpanded = expandedFolders.has(entry.path);
-
-      items.push(
-        <React.Fragment key={entry.path}>
-          <TreeNode
-            entry={entry}
-            absolutePath={entry.path}
-            isExpanded={isExpanded}
-            depth={0}
-            onToggleExpand={handleToggleFolder}
-            onFileClick={handleFileClick}
-            onContextMenu={handleContextMenu}
-            gitStatusColor={gitColor}
-          />
-          {isExpanded &&
-            entry.is_directory &&
-            children.map((child) =>
-              renderTreeChildren(child, 1, expandedFolders, folderCache),
-            )}
-        </React.Fragment>,
+        />,
       );
     }
 
     return items;
   }, [
-    rootContents,
-    expandedFolders,
-    folderCache,
-    handleToggleFolder,
+    fileList,
+    dirStack,
+    goBackDirectory,
+    gitStatus,
+    onFolderNavigate,
     handleFileClick,
     handleContextMenu,
     getGitStatusColor,
   ]);
 
-  if (sidebarDesign === "legacy") {
-    return (
-      <SidebarLegacy
-        fileList={rootContents}
-        dirStack={dirStack}
-        goBackDirectory={goBackDirectory}
-        handleFileClick={handleFileClick}
-        selectedDir={selectedDir}
-        refreshDirectory={refreshDirectory}
-        onFolderNavigate={handleLegacyFolderNavigate}
-      />
-    );
-  }
-
   return (
-    <div
-      className="sidebar"
-      onContextMenu={(e) => selectedDir !== "null" && handleContextMenu(e)}
-    >
-      {selectedDir === "null" && (
-        <button className="open-folder-btn" onClick={handleOpenFolder}>
-          Open Folder
-        </button>
-      )}
+    <div className="sidebar">
       <div data-tauri-drag-region className="file-list">
-        {renderTree()}
+        {renderItems}
       </div>
 
       {contextMenu && (
@@ -494,8 +301,8 @@ const Sidebar: React.FC<SidebarProps> = ({
           ref={contextMenuRef}
           className="context-menu"
           style={{
-            left: contextMenu.x,
-            top: contextMenu.y,
+            left: `${contextMenu.x}px`,
+            top: `${contextMenu.y}px`,
           }}
         >
           {contextMenu.type === "empty" && (
@@ -603,7 +410,7 @@ const Sidebar: React.FC<SidebarProps> = ({
               <div className="context-menu-separator" />
               <button
                 className="context-menu-item context-menu-item-danger"
-                onClick={handleDeleteFolder}
+                onClick={handleDeleteFile}
               >
                 <i className="fa-solid fa-trash" /> Delete Folder
               </button>
@@ -615,4 +422,4 @@ const Sidebar: React.FC<SidebarProps> = ({
   );
 };
 
-export default Sidebar;
+export default SidebarLegacy;

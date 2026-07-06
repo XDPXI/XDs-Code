@@ -395,6 +395,11 @@ export default function App() {
             handleOpenFolder={handleOpenFolder}
             selectedDir={selectedDir}
             refreshDirectory={refreshDirectory}
+            sidebarDesign={settings?.sidebar_design || "modern"}
+            onFolderNavigate={(folderPath) => {
+              setSelectedDir(folderPath);
+              readDirectory(folderPath);
+            }}
           />
         )}
 
