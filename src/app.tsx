@@ -16,12 +16,10 @@ import { useModal } from "./hooks/useModal";
 
 export default function App() {
   const { alert, confirm } = useModal();
-  const [fileList, setFileList] = useState<FileEntry[]>([]);
+  const [rootContents, setRootContents] = useState<FileEntry[]>([]);
   const [openTabs, setOpenTabs] = useState<OpenFile[]>([]);
   const [currentFile, setCurrentFile] = useState<string | null>(null);
   const [fileContent, setFileContent] = useState<string>("");
-  const [currentDir, setCurrentDir] = useState<string>("");
-  const [dirStack, setDirStack] = useState<string[]>([]);
   const [mediaURL, setMediaURL] = useState<string | null>(null);
   const [terminalOpen, setTerminalOpen] = useState(false);
   const [projectStructureOpen, setProjectStructureOpen] = useState(true);
@@ -181,27 +179,23 @@ export default function App() {
     [unsavedFiles, openTabs, currentFile, confirm, alert],
   );
 
-  const readDirectory = useCallback(
-    async (dirPath: string) => {
-      try {
-        const result = await invoke<DirectoryContents>("read_directory", {
-          path: dirPath,
-        });
-        setFileList(result.entries);
-        setCurrentDir(result.current_path);
-      } catch (error) {
-        console.error("Failed to read directory:", error);
-        await alert(`Failed to read directory: ${error}`);
-      }
-    },
-    [alert],
-  );
+  const readDirectory = useCallback(async (path: string) => {
+    try {
+      const contents = await invoke<DirectoryContents>("read_directory", {
+        path,
+      });
+
+      setRootContents(contents.entries);
+    } catch (error) {
+      console.error("Failed to read directory:", error);
+    }
+  }, []);
 
   const refreshDirectory = useCallback(() => {
-    if (currentDir) {
-      readDirectory(currentDir);
+    if (selectedDir !== "null") {
+      readDirectory(selectedDir);
     }
-  }, [currentDir, readDirectory]);
+  }, [selectedDir, readDirectory]);
 
   const handleSaveFile = useCallback(async () => {
     if (!currentFile) {
@@ -246,7 +240,6 @@ export default function App() {
       });
 
       if (selected) {
-        setDirStack([]);
         setSelectedDir(selected);
         await readDirectory(selected);
       }
@@ -258,69 +251,60 @@ export default function App() {
 
   const handleFileClick = useCallback(
     async (entry: FileEntry) => {
+      // Only handle files, not folders
       if (entry.is_directory) {
-        setDirStack((prev) => [...prev, currentDir]);
-        await readDirectory(entry.path);
-      } else {
-        try {
-          const isBinary = await invoke<boolean>("is_binary_file", {
+        return;
+      }
+
+      try {
+        const isBinary = await invoke<boolean>("is_binary_file", {
+          path: entry.path,
+        });
+
+        if (
+          isBinary &&
+          !isImageFile(entry.name) &&
+          !isVideoFile(entry.name)
+        ) {
+          await alert("This file appears to be binary and cannot be opened.");
+          return;
+        }
+
+        if (isImageFile(entry.name) || isVideoFile(entry.name)) {
+          const url = `asset://localhost/${entry.path}`;
+          setMediaURL(url);
+          setFileContent("");
+          contentRef.current = "";
+          setCurrentFile(entry.path);
+
+          openTab({
+            name: entry.name,
+            path: entry.path,
+            content: "",
+          });
+        } else {
+          const content = await invoke<string>("read_file", {
             path: entry.path,
           });
 
-          if (
-            isBinary &&
-            !isImageFile(entry.name) &&
-            !isVideoFile(entry.name)
-          ) {
-            await alert("This file appears to be binary and cannot be opened.");
-            return;
-          }
+          contentRef.current = content;
+          setFileContent(content);
+          setMediaURL(null);
+          setCurrentFile(entry.path);
 
-          if (isImageFile(entry.name) || isVideoFile(entry.name)) {
-            const url = `asset://localhost/${entry.path}`;
-            setMediaURL(url);
-            setFileContent("");
-            contentRef.current = "";
-            setCurrentFile(entry.path);
-
-            openTab({
-              name: entry.name,
-              path: entry.path,
-              content: "",
-            });
-          } else {
-            const content = await invoke<string>("read_file", {
-              path: entry.path,
-            });
-
-            contentRef.current = content;
-            setFileContent(content);
-            setMediaURL(null);
-            setCurrentFile(entry.path);
-
-            openTab({
-              name: entry.name,
-              path: entry.path,
-              content: content,
-            });
-          }
-        } catch (error) {
-          console.error("Failed to open file:", error);
-          await alert(`Failed to open file: ${error}`);
+          openTab({
+            name: entry.name,
+            path: entry.path,
+            content: content,
+          });
         }
+      } catch (error) {
+        console.error("Failed to open file:", error);
+        await alert(`Failed to open file: ${error}`);
       }
     },
-    [currentDir, openTab, readDirectory, alert],
+    [openTab, alert],
   );
-
-  const goBackDirectory = useCallback(() => {
-    const newStack = [...dirStack];
-    const parent = newStack.pop();
-    if (parent) {
-      setDirStack(newStack);
-      readDirectory(parent);
-    }
-  }, [dirStack, readDirectory]);
 
   const handleCtrlC = useCallback(() => {
     invoke("stop_terminal_command").catch((err) => {
@@ -406,9 +390,7 @@ export default function App() {
       <div className="content-container" data-tauri-drag-region>
         {projectStructureOpen && (
           <Sidebar
-            fileList={fileList}
-            dirStack={dirStack}
-            goBackDirectory={goBackDirectory}
+            rootContents={rootContents}
             handleFileClick={handleFileClick}
             handleOpenFolder={handleOpenFolder}
             selectedDir={selectedDir}
@@ -476,7 +458,7 @@ export default function App() {
                       : undefined
                   }
                 >
-                  <Terminal currentDir={currentDir} onCtrlC={handleCtrlC} />
+                  <Terminal currentDir={selectedDir} onCtrlC={handleCtrlC} />
                 </div>
               )}
             </div>

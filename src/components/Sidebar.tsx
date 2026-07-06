@@ -1,13 +1,12 @@
 import React, {
-  useMemo,
   useState,
   useEffect,
   useRef,
   useCallback,
 } from "react";
-import { getFileIcon } from "../utils/fileHelpers";
 import { invoke } from "@tauri-apps/api/core";
 import { useModal } from "../hooks/useModal";
+import TreeNode from "./TreeNode";
 
 interface GitFileInfo {
   path: string;
@@ -15,9 +14,7 @@ interface GitFileInfo {
 }
 
 interface SidebarProps {
-  fileList: FileEntry[];
-  dirStack: string[];
-  goBackDirectory: () => void;
+  rootContents: FileEntry[];
   handleFileClick: (entry: FileEntry) => void;
   handleOpenFolder: () => void;
   selectedDir: string;
@@ -25,9 +22,7 @@ interface SidebarProps {
 }
 
 const Sidebar: React.FC<SidebarProps> = ({
-  fileList,
-  dirStack,
-  goBackDirectory,
+  rootContents,
   handleFileClick,
   handleOpenFolder,
   selectedDir,
@@ -35,6 +30,12 @@ const Sidebar: React.FC<SidebarProps> = ({
 }) => {
   const [contextMenu, setContextMenu] = useState<ContextMenu | null>(null);
   const [gitStatus, setGitStatus] = useState<Map<string, GitFileInfo>>(
+    new Map(),
+  );
+  const [expandedFolders, setExpandedFolders] = useState<Set<string>>(
+    new Set(),
+  );
+  const [folderCache, setFolderCache] = useState<Map<string, FileEntry[]>>(
     new Map(),
   );
   const contextMenuRef = useRef<HTMLDivElement>(null);
@@ -56,7 +57,7 @@ const Sidebar: React.FC<SidebarProps> = ({
 
           console.log("Git status response:", status);
           console.log("Selected dir:", selectedDir);
-          console.log("File list:", fileList);
+          console.log("Root contents:", rootContents);
 
           const statusMap = new Map<string, GitFileInfo>();
 
@@ -137,33 +138,69 @@ const Sidebar: React.FC<SidebarProps> = ({
     }
   };
 
-  const handleCreateFile = useCallback(async () => {
-    const fileName = await prompt("Enter file name:");
-    if (!fileName) return;
+  const handleCreateFile = useCallback(
+    async (targetDir?: string) => {
+      const fileName = await prompt("Enter file name:");
+      if (!fileName) return;
 
-    setContextMenu(null);
-    try {
-      const filePath = `${selectedDir}/${fileName}`;
-      await invoke("create_file", { path: filePath });
-      refreshDirectory();
-    } catch (error) {
-      alert(`Failed to create file: ${error}`);
-    }
-  }, [selectedDir, prompt, alert, refreshDirectory]);
+      setContextMenu(null);
+      const dir = targetDir || selectedDir;
 
-  const handleCreateFolder = useCallback(async () => {
-    const folderName = await prompt("Enter folder name:");
-    if (!folderName) return;
+      try {
+        const filePath = `${dir}/${fileName}`;
+        await invoke("create_file", { path: filePath });
 
-    setContextMenu(null);
-    try {
-      const folderPath = `${selectedDir}/${folderName}`;
-      await invoke("create_directory", { path: folderPath });
-      refreshDirectory();
-    } catch (error) {
-      alert(`Failed to create folder: ${error}`);
-    }
-  }, [selectedDir, prompt, alert, refreshDirectory]);
+        // Invalidate cache for parent directory
+        setFolderCache((prev) => {
+          const newMap = new Map(prev);
+          newMap.delete(dir);
+          return newMap;
+        });
+
+        // Ensure parent folder is expanded if it's nested
+        if (dir !== selectedDir) {
+          setExpandedFolders((prev) => new Set(prev).add(dir));
+        }
+
+        refreshDirectory();
+      } catch (error) {
+        alert(`Failed to create file: ${error}`);
+      }
+    },
+    [selectedDir, prompt, alert, refreshDirectory],
+  );
+
+  const handleCreateFolder = useCallback(
+    async (targetDir?: string) => {
+      const folderName = await prompt("Enter folder name:");
+      if (!folderName) return;
+
+      setContextMenu(null);
+      const dir = targetDir || selectedDir;
+
+      try {
+        const folderPath = `${dir}/${folderName}`;
+        await invoke("create_directory", { path: folderPath });
+
+        // Invalidate cache for parent directory
+        setFolderCache((prev) => {
+          const newMap = new Map(prev);
+          newMap.delete(dir);
+          return newMap;
+        });
+
+        // Ensure parent folder is expanded if it's nested
+        if (dir !== selectedDir) {
+          setExpandedFolders((prev) => new Set(prev).add(dir));
+        }
+
+        refreshDirectory();
+      } catch (error) {
+        alert(`Failed to create folder: ${error}`);
+      }
+    },
+    [selectedDir, prompt, alert, refreshDirectory],
+  );
 
   const handleOpenInFileManager = useCallback(async () => {
     if (!contextMenu?.entry && !selectedDir) {
@@ -230,6 +267,47 @@ const Sidebar: React.FC<SidebarProps> = ({
     }
   }, [contextMenu, alert, refreshDirectory]);
 
+  const handleToggleFolder = useCallback(
+    async (path: string) => {
+      // If already in cache, just toggle expanded state
+      if (folderCache.has(path)) {
+        setExpandedFolders((prev) => {
+          const newSet = new Set(prev);
+          if (newSet.has(path)) {
+            newSet.delete(path);
+          } else {
+            newSet.add(path);
+          }
+          return newSet;
+        });
+        return;
+      }
+
+      // Load folder contents and add to cache
+      try {
+        const result = await invoke<DirectoryContents>("read_directory", {
+          path,
+        });
+        setFolderCache((prev) => {
+          const newMap = new Map(prev);
+          newMap.set(path, result.entries);
+          return newMap;
+        });
+
+        // Toggle expanded state
+        setExpandedFolders((prev) => {
+          const newSet = new Set(prev);
+          newSet.add(path);
+          return newSet;
+        });
+      } catch (error) {
+        console.error(`Failed to load folder ${path}:`, error);
+        alert(`Failed to load folder: ${error}`);
+      }
+    },
+    [folderCache, alert],
+  );
+
   const getGitStatusColor = (entry: FileEntry): string | undefined => {
     let gitInfo = gitStatus.get(entry.path);
 
@@ -267,57 +345,75 @@ const Sidebar: React.FC<SidebarProps> = ({
     }
   };
 
-  const fileItems = useMemo(() => {
+  const renderTreeChildren = (
+    entry: FileEntry,
+    depth: number,
+    expanded: Set<string>,
+    cache: Map<string, FileEntry[]>,
+  ): React.ReactNode => {
+    const gitColor = getGitStatusColor(entry);
+    const children = cache.get(entry.path) || [];
+    const isExpanded = expanded.has(entry.path);
+
+    return (
+      <React.Fragment key={entry.path}>
+        <TreeNode
+          entry={entry}
+          absolutePath={entry.path}
+          isExpanded={isExpanded}
+          depth={depth}
+          onToggleExpand={handleToggleFolder}
+          onFileClick={handleFileClick}
+          onContextMenu={handleContextMenu}
+          gitStatusColor={gitColor}
+        />
+        {isExpanded &&
+          entry.is_directory &&
+          children.map((child) =>
+            renderTreeChildren(child, depth + 1, expanded, cache),
+          )}
+      </React.Fragment>
+    );
+  };
+
+  const renderTree = useCallback(() => {
     const items = [];
 
-    if (dirStack.length > 0) {
-      items.push(
-        <button
-          key="up"
-          className="file-item"
-          onClick={goBackDirectory}
-          type="button"
-          aria-label="Go to parent directory"
-        >
-          <i className="fa-solid fa-arrow-up" /> ..
-        </button>,
-      );
-    }
-
-    for (const entry of fileList) {
-      const icon = entry.is_directory
-        ? "fa-solid fa-folder"
-        : getFileIcon(entry.name);
+    for (const entry of rootContents) {
       const gitColor = getGitStatusColor(entry);
-      const style = gitColor ? { color: gitColor } : {};
+      const children = folderCache.get(entry.path) || [];
+      const isExpanded = expandedFolders.has(entry.path);
 
       items.push(
-        <button
-          key={entry.path}
-          className="file-item"
-          onClick={() => handleFileClick(entry)}
-          onContextMenu={(e) => handleContextMenu(e, entry)}
-          type="button"
-          aria-label={
-            entry.is_directory
-              ? `Open folder ${entry.name}`
-              : `Open file ${entry.name}`
-          }
-          style={style}
-        >
-          <i className={`file-icon ${icon}`} style={style} /> {entry.name}
-        </button>,
+        <React.Fragment key={entry.path}>
+          <TreeNode
+            entry={entry}
+            absolutePath={entry.path}
+            isExpanded={isExpanded}
+            depth={0}
+            onToggleExpand={handleToggleFolder}
+            onFileClick={handleFileClick}
+            onContextMenu={handleContextMenu}
+            gitStatusColor={gitColor}
+          />
+          {isExpanded &&
+            entry.is_directory &&
+            children.map((child) =>
+              renderTreeChildren(child, 1, expandedFolders, folderCache),
+            )}
+        </React.Fragment>,
       );
     }
 
     return items;
   }, [
-    fileList,
+    rootContents,
+    expandedFolders,
+    folderCache,
+    handleToggleFolder,
     handleFileClick,
-    goBackDirectory,
-    dirStack,
-    gitStatus,
-    selectedDir,
+    handleContextMenu,
+    getGitStatusColor,
   ]);
 
   return (
@@ -331,7 +427,7 @@ const Sidebar: React.FC<SidebarProps> = ({
         </button>
       )}
       <div data-tauri-drag-region className="file-list">
-        {fileItems}
+        {renderTree()}
       </div>
 
       {contextMenu && (
@@ -347,11 +443,18 @@ const Sidebar: React.FC<SidebarProps> = ({
             <>
               <button
                 className="context-menu-item"
-                onClick={handleCreateFolder}
+                onClick={() => {
+                  handleCreateFolder();
+                }}
               >
                 <i className="fa-solid fa-folder-plus" /> Create Folder
               </button>
-              <button className="context-menu-item" onClick={handleCreateFile}>
+              <button
+                className="context-menu-item"
+                onClick={() => {
+                  handleCreateFile();
+                }}
+              >
                 <i className="fa-solid fa-file" /> Create File
               </button>
               <button
@@ -365,6 +468,36 @@ const Sidebar: React.FC<SidebarProps> = ({
 
           {contextMenu.type === "file" && (
             <>
+              <button
+                className="context-menu-item"
+                onClick={() => {
+                  const parentDir = contextMenu.entry?.path.substring(
+                    0,
+                    Math.max(
+                      contextMenu.entry.path.lastIndexOf("/"),
+                      contextMenu.entry.path.lastIndexOf("\\"),
+                    ),
+                  );
+                  handleCreateFile(parentDir);
+                }}
+              >
+                <i className="fa-solid fa-file" /> Create File
+              </button>
+              <button
+                className="context-menu-item"
+                onClick={() => {
+                  const parentDir = contextMenu.entry?.path.substring(
+                    0,
+                    Math.max(
+                      contextMenu.entry.path.lastIndexOf("/"),
+                      contextMenu.entry.path.lastIndexOf("\\"),
+                    ),
+                  );
+                  handleCreateFolder(parentDir);
+                }}
+              >
+                <i className="fa-solid fa-folder-plus" /> Create Folder
+              </button>
               <button className="context-menu-item" onClick={handleRunFile}>
                 <i className="fa-solid fa-play" /> Run File
               </button>
@@ -386,6 +519,22 @@ const Sidebar: React.FC<SidebarProps> = ({
 
           {contextMenu.type === "folder" && (
             <>
+              <button
+                className="context-menu-item"
+                onClick={() => {
+                  handleCreateFile(contextMenu.entry?.path);
+                }}
+              >
+                <i className="fa-solid fa-file" /> Create File
+              </button>
+              <button
+                className="context-menu-item"
+                onClick={() => {
+                  handleCreateFolder(contextMenu.entry?.path);
+                }}
+              >
+                <i className="fa-solid fa-folder-plus" /> Create Folder
+              </button>
               <button
                 className="context-menu-item"
                 onClick={handleOpenInFileManager}

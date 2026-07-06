@@ -1038,3 +1038,72 @@ html,
 .reset-defaults-btn:hover i {
     transform: rotate(-375deg);
 }
+
+.tree-node {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  cursor: default;
+  user-select: none;
+}
+
+.tree-node:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+.tree-icon-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: inherit;
+}
+
+.tree-icon-btn:hover {
+  opacity: 0.8;
+}
+
+.tree-icon-spacer {
+  width: 16px;
+  display: inline-block;
+}
+
+.tree-name-btn {
+  background: none;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  padding: 0;
+  flex: 1;
+  text-align: left;
+  font-family: inherit;
+  font-size: inherit;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.tree-name-btn:hover {
+  opacity: 0.8;
+}
+
+.tree-file-icon {
+  display: inline-block;
+  min-width: 16px;
+}
+
+.tree-children {
+  display: flex;
+  flex-direction: column;
+}
+
+.file-list {
+  display: flex;
+  flex-direction: column;
+}

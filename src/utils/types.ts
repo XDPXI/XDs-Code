@@ -23,12 +23,6 @@ interface ContextMenu {
   entry?: FileEntry;
 }
 
-interface OpenFile {
-  name: string;
-  path: string;
-  content: string;
-}
-
 type GitFileStatus = "untracked" | "modified" | "staged" | "unmodified";
 
 interface GitFileInfo {
