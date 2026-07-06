@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "XD's Code",
+  "productName": "xds-code",
   "version": "0.8.0",
   "identifier": "dev.xdpxi.xds-code",
   "build": {
