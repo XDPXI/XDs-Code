@@ -279,8 +279,8 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
                     }
                     className="setting-select"
                   >
-                    <option value="legacy">Legacy</option>
                     <option value="modern">Modern</option>
+                    <option value="legacy">Legacy</option>
                   </select>
                 </div>
               </div>

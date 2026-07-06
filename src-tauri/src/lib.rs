@@ -35,6 +35,10 @@ fn default_theme() -> String {
     "one-dark".to_string()
 }
 
+fn default_sidebar_design() -> String {
+    "modern".to_string()
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct AppSettings {
     pub editor_font_size: i32,
@@ -48,6 +52,8 @@ pub struct AppSettings {
     pub auto_save_interval: i32,
     #[serde(default = "default_theme")]
     pub theme: String,
+    #[serde(default = "default_sidebar_design")]
+    pub sidebar_design: String,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -485,6 +491,7 @@ impl Default for AppSettings {
             auto_save_enabled: false,
             auto_save_interval: 5000,
             theme: "one-dark".to_string(),
+            sidebar_design: "modern".to_string(),
         }
     }
 }
