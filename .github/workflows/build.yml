@@ -134,6 +134,7 @@ jobs:
           cp "$RPM" "xds-code_${VERSION}_linux-amd64.rpm"
           APPIMAGE=$(find src-tauri/target/release/bundle/appimage -name "*.AppImage" | head -1)
           cp "$APPIMAGE" "xds-code_${VERSION}_linux-amd64.AppImage"
+          zip "xds-code_${VERSION}_linux-amd64.zip" src-tauri/target/release/xds-code
 
       - name: Upload Linux artifacts to release
         uses: softprops/action-gh-release@v3
@@ -143,6 +144,7 @@ jobs:
             xds-code_*_linux-amd64.deb
             xds-code_*_linux-amd64.rpm
             xds-code_*_linux-amd64.AppImage
+            xds-code_*_linux-amd64.zip
 
   build-windows:
     needs: create-release
@@ -260,6 +262,7 @@ jobs:
           VERSION=$(jq -r '.version' src-tauri/tauri.conf.json)
           DMG=$(find src-tauri/target/x86_64-apple-darwin/release/bundle/dmg -name "*.dmg" | head -1)
           cp "$DMG" "xds-code_${VERSION}_macos-x64.dmg"
+          zip "xds-code_${VERSION}_macos-x64.zip" src-tauri/target/x86_64-apple-darwin/release/xds-code
 
       - name: Upload macOS Intel artifacts to release
         uses: softprops/action-gh-release@v3
@@ -267,6 +270,7 @@ jobs:
           tag_name: ${{ needs.create-release.outputs.tag }}
           files: |
             xds-code_*_macos-x64.dmg
+            xds-code_*_macos-x64.zip
 
   build-macos-arm:
     needs: create-release
@@ -321,6 +325,8 @@ jobs:
           VERSION=$(jq -r '.version' src-tauri/tauri.conf.json)
           DMG=$(find src-tauri/target/aarch64-apple-darwin/release/bundle/dmg src-tauri/target/release/bundle/dmg -name "*.dmg" 2>/dev/null | head -1)
           cp "$DMG" "xds-code_${VERSION}_macos-aarch64.dmg"
+          BIN=$(find src-tauri/target/aarch64-apple-darwin/release src-tauri/target/release -maxdepth 1 -name "xds-code" -type f 2>/dev/null | head -1)
+          zip "xds-code_${VERSION}_macos-aarch64.zip" "$BIN"
 
       - name: Upload macOS ARM artifacts to release
         uses: softprops/action-gh-release@v3
@@ -328,3 +334,4 @@ jobs:
           tag_name: ${{ needs.create-release.outputs.tag }}
           files: |
             xds-code_*_macos-aarch64.dmg
+            xds-code_*_macos-aarch64.zip
