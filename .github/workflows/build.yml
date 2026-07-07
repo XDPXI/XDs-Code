@@ -193,19 +193,19 @@ jobs:
         run: |
           $VERSION = (Get-Content src-tauri/tauri.conf.json | ConvertFrom-Json).version
           $MSI = (Get-ChildItem src-tauri/target/release/bundle/msi/*.msi)[0]
-          Copy-Item $MSI.FullName "xds-code_${VERSION}_windows-x64-msi.msi"
+          Copy-Item $MSI.FullName "xds-code_${VERSION}_windows-x64.msi"
           $NSIS = (Get-ChildItem src-tauri/target/release/bundle/nsis/*.exe)[0]
-          Copy-Item $NSIS.FullName "xds-code_${VERSION}_windows-x64-nsis.exe"
-          Compress-Archive -Path src-tauri/target/release/xds-code.exe -DestinationPath "xds-code_${VERSION}_windows-x64-portable.zip"
+          Copy-Item $NSIS.FullName "xds-code_${VERSION}_windows-x64.exe"
+          Compress-Archive -Path src-tauri/target/release/xds-code.exe -DestinationPath "xds-code_${VERSION}_windows-x64.zip"
 
       - name: Upload Windows artifacts to release
         uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ needs.create-release.outputs.tag }}
           files: |
-            xds-code_*_windows-x64-msi.msi
-            xds-code_*_windows-x64-nsis.exe
-            xds-code_*_windows-x64-portable.zip
+            xds-code_*_windows-x64.msi
+            xds-code_*_windows-x64.exe
+            xds-code_*_windows-x64.zip
 
   build-macos-intel:
     needs: create-release
