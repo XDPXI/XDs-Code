@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { useModal } from "../hooks/useModal";
+import { getVersion } from "@tauri-apps/api/app";
 
 interface SettingsPageProps {
   isOpen: boolean;
@@ -32,10 +33,13 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
   const [error, setError] = useState<string | null>(null);
   const { confirm } = useModal();
   const currentYear = new Date().getFullYear();
+  const [version, setVersion] = useState("");
 
   useEffect(() => {
     if (isOpen) {
       loadSettings();
+
+      getVersion().then(setVersion).catch(console.error);
     }
   }, [isOpen]);
 
@@ -397,7 +401,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
                 <p>
                   <strong>XD's Code</strong>
                 </p>
-                <p>Version 0.9.0</p>
+                <p>Version {version}</p>
                 <p>A code editor inspired by Zed and VSC made using Tauri</p>
                 <p className="about-copy">&copy; 2025-{currentYear} XDPXI</p>
               </div>
