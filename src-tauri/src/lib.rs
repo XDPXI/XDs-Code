@@ -466,7 +466,7 @@ fn stop_terminal_command(state: State<AppState>) -> Result<(), String> {
     *state.shell_stdin.lock().unwrap() = None;
 
     let mut child_guard = state.shell_child.lock().unwrap();
-    if let Some(mut child) = child_guard.take() {
+    if let Some(child) = child_guard.take() {
         #[cfg(target_os = "windows")]
         {
             let _ = std::process::Command::new("taskkill")
