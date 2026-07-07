@@ -293,7 +293,8 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
                     onChange={(e) =>
                       handleSettingChange(
                         "theme",
-                        e.target.value as "one-dark" | "one-light" | "windows-xp" | "legacy",
+                        e.target.value as
+                          "one-dark" | "one-light" | "windows-xp" | "legacy",
                       )
                     }
                     className="setting-select"
@@ -396,7 +397,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
                 <p>
                   <strong>XD's Code</strong>
                 </p>
-                <p>Version 0.8.0</p>
+                <p>Version 0.9.0</p>
                 <p>A code editor inspired by Zed and VSC made using Tauri</p>
                 <p className="about-copy">&copy; 2025-{currentYear} XDPXI</p>
               </div>
