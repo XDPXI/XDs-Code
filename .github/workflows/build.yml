@@ -13,32 +13,60 @@ jobs:
     outputs:
       tag: ${{ steps.buildnum.outputs.tag }}
       name: ${{ steps.buildnum.outputs.name }}
+      is_release: ${{ steps.buildnum.outputs.is_release }}
     steps:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
-      - name: Get commit number
+      - name: Get release info
         id: buildnum
         run: |
-          COUNT=$(git rev-list --count HEAD)
-          echo "tag=build-$COUNT" >> $GITHUB_OUTPUT
-          echo "name=Build $COUNT" >> $GITHUB_OUTPUT
+          COMMIT_MSG=$(git log -1 --pretty=%s)
+          if [[ "$COMMIT_MSG" == \[release\]* ]]; then
+            VERSION="${COMMIT_MSG#\[release\] }"
+            echo "tag=$VERSION" >> $GITHUB_OUTPUT
+            echo "name=$VERSION" >> $GITHUB_OUTPUT
+            echo "is_release=true" >> $GITHUB_OUTPUT
+          else
+            COUNT=$(git rev-list --count HEAD)
+            echo "tag=build-$COUNT" >> $GITHUB_OUTPUT
+            echo "name=Build $COUNT" >> $GITHUB_OUTPUT
+            echo "is_release=false" >> $GITHUB_OUTPUT
+          fi
 
-      - name: Get commit message
-        id: commit
+      - name: Generate release body
         run: |
-          echo "msg<<EOF" >> $GITHUB_OUTPUT
-          git log -1 --pretty=%s >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
+          COMMIT_MSG=$(git log -1 --pretty=%s)
+          if [[ "$COMMIT_MSG" == \[release\]* ]]; then
+            LAST_RELEASE=$(git tag --list | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -1)
+            printf "## Changes\n" > release_body.md
+            if [ -n "$LAST_RELEASE" ]; then
+              git log "${LAST_RELEASE}..HEAD~1" --abbrev=8 --pretty=format:"- %s by @%an in %h" >> release_body.md
+            else
+              git log "HEAD~1" --abbrev=8 --pretty=format:"- %s by @%an in %h" >> release_body.md
+            fi
+          else
+            git log -1 --pretty=%s > release_body.md
+          fi
 
-      - name: Create GitHub Release
+      - name: Create build prerelease
+        if: steps.buildnum.outputs.is_release == 'false'
         uses: softprops/action-gh-release@v3
         with:
           name: ${{ steps.buildnum.outputs.name }}
           tag_name: ${{ steps.buildnum.outputs.tag }}
           prerelease: true
-          body: ${{ steps.commit.outputs.msg }}
+          body_path: release_body.md
+
+      - name: Create version release
+        if: steps.buildnum.outputs.is_release == 'true'
+        uses: softprops/action-gh-release@v3
+        with:
+          name: ${{ steps.buildnum.outputs.name }}
+          tag_name: ${{ steps.buildnum.outputs.tag }}
+          prerelease: false
+          body_path: release_body.md
 
   build-linux:
     needs: create-release
