@@ -399,6 +399,7 @@ jobs:
             - ARM SHA256: ${{ steps.sha.outputs.arm_sha }}
             - Intel SHA256: ${{ steps.sha.outputs.intel_sha }}
           branch: update-xds-code-${{ needs.create-release.outputs.tag }}
+          push-to-fork: true
           token: ${{ secrets.GH_TOKEN }}
 
   update-winget-pkgs:
@@ -485,4 +486,5 @@ jobs:
             - [x] Have you tested your manifest locally with `winget install --manifest <path>`?
             - [x] Does your manifest conform to the [1.10 schema](https://github.com/microsoft/winget-pkgs/tree/master/doc/manifest/schema/1.10.0)?
           branch: xds-code-${{ steps.version.outputs.version }}
+          push-to-fork: true
           token: ${{ secrets.GH_TOKEN }}
