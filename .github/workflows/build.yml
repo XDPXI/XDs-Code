@@ -390,7 +390,7 @@ jobs:
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v5
         with:
-          repository: XDPXI/homebrew-tap
+          path: homebrew-tap
           commit-message: "chore: update xds-code to ${{ needs.create-release.outputs.tag }}"
           title: "chore: update xds-code to ${{ needs.create-release.outputs.tag }}"
           body: |
@@ -470,7 +470,7 @@ jobs:
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v5
         with:
-          repository: microsoft/winget-pkgs
+          path: winget-pkgs
           commit-message: "New version: xdpxi.xds-code version ${{ steps.version.outputs.version }}"
           title: "New version: xdpxi.xds-code version ${{ steps.version.outputs.version }}"
           body: |
