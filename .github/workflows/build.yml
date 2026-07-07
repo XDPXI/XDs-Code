@@ -166,7 +166,7 @@ jobs:
       - name: Cache bun dependencies
         uses: actions/cache@v6
         with:
-          path: ~/.bun/install/cache
+          path: ~\AppData\Local\bun\install\cache
           key: ${{ runner.os }}-bun-${{ hashFiles('**/bun.lockb') }}
           restore-keys: |
             ${{ runner.os }}-bun-
