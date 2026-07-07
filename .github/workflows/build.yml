@@ -377,69 +377,15 @@ jobs:
           path: homebrew-tap
 
       - name: Update Cask file
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+          ARM_SHA: ${{ steps.sha.outputs.arm_sha }}
+          INTEL_SHA: ${{ steps.sha.outputs.intel_sha }}
         run: |
           cd "$GITHUB_WORKSPACE/homebrew-tap"
-
-          cat > Casks/xds-code.rb << 'EOF'
-cask "xds-code" do
-  version "${{ steps.version.outputs.version }}"
-
-  on_arm do
-    sha256 "${{ steps.sha.outputs.arm_sha }}"
-
-    url "https://github.com/XDPXI/XDs-Code/releases/download/#{version}/xds-code_#{version}_macos-aarch64.dmg",
-        verified: "github.com"
-  end
-
-  on_intel do
-    sha256 "${{ steps.sha.outputs.intel_sha }}"
-
-    url "https://github.com/XDPXI/XDs-Code/releases/download/#{version}/xds-code_#{version}_macos-x64.dmg",
-        verified: "github.com"
-  end
-
-  name "XD's Code"
-  desc "XD's Code is a code editor that is inspired by Zed and VSC made using Tauri."
-  homepage "https://github.com/XDPXI/XDs-Code"
-
-  livecheck do
-    url :url
-    strategy :github_latest
-  end
-
-  app "xds-code.app"
-
-  postflight do
-    system_command "/usr/bin/xattr",
-                   args: [
-                     "-d",
-                     "com.apple.quarantine",
-                     "#{appdir}/xds-code.app",
-                   ],
-                   sudo: false
-  end
-
-  zap trash: [
-    "~/Library/Preferences/dev.xdpxi.xds-code.plist",
-    "~/Library/Preferences/xds-code.plist",
-
-    "~/Library/Application Support/dev.xdpxi.xds-code",
-    "~/Library/Application Support/dev.xdpxi.xds-code/*",
-    "~/Library/Application Support/xds-code/",
-    "~/Library/Application Support/xds-code/*",
-
-    "~/Library/Caches/dev.xdpxi.xds-code",
-    "~/Library/Caches/dev.xdpxi.xds-code/*",
-    "~/Library/Caches/xds-code",
-    "~/Library/Caches/xds-code/*",
-
-    "~/Library/WebKit/dev.xdpxi.xds-code",
-    "~/Library/WebKit/dev.xdpxi.xds-code/*",
-    "~/Library/WebKit/xds-code",
-    "~/Library/WebKit/xds-code/*",
-  ]
-end
-EOF
+          sed -i "s/version \"[^\"]*\"/version \"$VERSION\"/" Casks/xds-code.rb
+          sed -i "0,/sha256 \"[^\"]*\"/{s/sha256 \"[^\"]*\"/sha256 \"$ARM_SHA\"/;}" Casks/xds-code.rb
+          sed -i "/on_intel/,/end/{s/sha256 \"[^\"]*\"/sha256 \"$INTEL_SHA\"/;}" Casks/xds-code.rb
 
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v5
