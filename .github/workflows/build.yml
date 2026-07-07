@@ -6,6 +6,7 @@ on:
 
 permissions:
   contents: write
+  pull-requests: write
 
 jobs:
   create-release:
@@ -335,3 +336,121 @@ jobs:
           files: |
             xds-code_*_macos-aarch64.dmg
             xds-code_*_macos-aarch64.zip
+
+  update-homebrew-tap:
+    needs: [create-release, build-macos-arm, build-macos-intel]
+    if: startsWith(github.event.head_commit.message, '[release]')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout main repo for version
+        uses: actions/checkout@v7
+
+      - name: Get version
+        id: version
+        run: |
+          VERSION=$(jq -r '.version' src-tauri/tauri.conf.json)
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Download macOS DMG files
+        run: |
+          mkdir -p /tmp/dmg
+          cd /tmp/dmg
+          gh release download "${{ needs.create-release.outputs.tag }}" \
+            -R "${{ github.repository }}" \
+            -p "xds-code_${{ steps.version.outputs.version }}_macos-*.dmg"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Calculate SHA256 hashes
+        id: sha
+        run: |
+          ARM_SHA=$(sha256sum "/tmp/dmg/xds-code_${{ steps.version.outputs.version }}_macos-aarch64.dmg" | awk '{print $1}')
+          INTEL_SHA=$(sha256sum "/tmp/dmg/xds-code_${{ steps.version.outputs.version }}_macos-x64.dmg" | awk '{print $1}')
+          echo "arm_sha=$ARM_SHA" >> $GITHUB_OUTPUT
+          echo "intel_sha=$INTEL_SHA" >> $GITHUB_OUTPUT
+
+      - name: Checkout homebrew-tap
+        uses: actions/checkout@v7
+        with:
+          repository: XDPXI/homebrew-tap
+          token: ${{ secrets.GITHUB_TOKEN }}
+          path: homebrew-tap
+
+      - name: Update Cask file
+        run: |
+          cd "$GITHUB_WORKSPACE/homebrew-tap"
+
+          cat > Casks/xds-code.rb << 'EOF'
+cask "xds-code" do
+  version "${{ steps.version.outputs.version }}"
+
+  on_arm do
+    sha256 "${{ steps.sha.outputs.arm_sha }}"
+
+    url "https://github.com/XDPXI/XDs-Code/releases/download/#{version}/xds-code_#{version}_macos-aarch64.dmg",
+        verified: "github.com"
+  end
+
+  on_intel do
+    sha256 "${{ steps.sha.outputs.intel_sha }}"
+
+    url "https://github.com/XDPXI/XDs-Code/releases/download/#{version}/xds-code_#{version}_macos-x64.dmg",
+        verified: "github.com"
+  end
+
+  name "XD's Code"
+  desc "XD's Code is a code editor that is inspired by Zed and VSC made using Tauri."
+  homepage "https://github.com/XDPXI/XDs-Code"
+
+  livecheck do
+    url :url
+    strategy :github_latest
+  end
+
+  app "xds-code.app"
+
+  postflight do
+    system_command "/usr/bin/xattr",
+                   args: [
+                     "-d",
+                     "com.apple.quarantine",
+                     "#{appdir}/xds-code.app",
+                   ],
+                   sudo: false
+  end
+
+  zap trash: [
+    "~/Library/Preferences/dev.xdpxi.xds-code.plist",
+    "~/Library/Preferences/xds-code.plist",
+
+    "~/Library/Application Support/dev.xdpxi.xds-code",
+    "~/Library/Application Support/dev.xdpxi.xds-code/*",
+    "~/Library/Application Support/xds-code/",
+    "~/Library/Application Support/xds-code/*",
+
+    "~/Library/Caches/dev.xdpxi.xds-code",
+    "~/Library/Caches/dev.xdpxi.xds-code/*",
+    "~/Library/Caches/xds-code",
+    "~/Library/Caches/xds-code/*",
+
+    "~/Library/WebKit/dev.xdpxi.xds-code",
+    "~/Library/WebKit/dev.xdpxi.xds-code/*",
+    "~/Library/WebKit/xds-code",
+    "~/Library/WebKit/xds-code/*",
+  ]
+end
+EOF
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v5
+        with:
+          repository: XDPXI/homebrew-tap
+          commit-message: "chore: update xds-code to ${{ needs.create-release.outputs.tag }}"
+          title: "chore: update xds-code to ${{ needs.create-release.outputs.tag }}"
+          body: |
+            Updates xds-code to version ${{ needs.create-release.outputs.tag }}
+
+            - ARM SHA256: ${{ steps.sha.outputs.arm_sha }}
+            - Intel SHA256: ${{ steps.sha.outputs.intel_sha }}
+          branch: update-xds-code-${{ needs.create-release.outputs.tag }}
+          token: ${{ secrets.GITHUB_TOKEN }}
