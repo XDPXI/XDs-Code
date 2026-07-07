@@ -1,4 +1,4 @@
-name: Build Tauri App
+name: Build
 
 on:
   push:
@@ -97,14 +97,24 @@ jobs:
       - name: Build Tauri app (Linux)
         run: bun tauri build
 
+      - name: Rename Linux artifacts
+        run: |
+          VERSION=$(jq -r '.version' src-tauri/tauri.conf.json)
+          DEB=$(find src-tauri/target/release/bundle/deb -name "*.deb" | head -1)
+          cp "$DEB" "xds-code_${VERSION}_linux-amd64.deb"
+          RPM=$(find src-tauri/target/release/bundle/rpm -name "*.rpm" | head -1)
+          cp "$RPM" "xds-code_${VERSION}_linux-amd64.rpm"
+          APPIMAGE=$(find src-tauri/target/release/bundle/appimage -name "*.AppImage" | head -1)
+          cp "$APPIMAGE" "xds-code_${VERSION}_linux-amd64.AppImage"
+
       - name: Upload Linux artifacts to release
         uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ needs.create-release.outputs.tag }}
           files: |
-            src-tauri/target/release/bundle/deb/*.deb
-            src-tauri/target/release/bundle/rpm/*.rpm
-            src-tauri/target/release/bundle/appimage/*.AppImage
+            xds-code_*_linux-amd64.deb
+            xds-code_*_linux-amd64.rpm
+            xds-code_*_linux-amd64.AppImage
 
   build-windows:
     needs: create-release
@@ -150,14 +160,24 @@ jobs:
       - name: Build Tauri app (Windows)
         run: bun tauri build
 
+      - name: Rename and package Windows artifacts
+        shell: pwsh
+        run: |
+          $VERSION = (Get-Content src-tauri/tauri.conf.json | ConvertFrom-Json).version
+          $MSI = (Get-ChildItem src-tauri/target/release/bundle/msi/*.msi)[0]
+          Copy-Item $MSI.FullName "xds-code_${VERSION}_windows-x64-msi.msi"
+          $NSIS = (Get-ChildItem src-tauri/target/release/bundle/nsis/*.exe)[0]
+          Copy-Item $NSIS.FullName "xds-code_${VERSION}_windows-x64-nsis.exe"
+          Compress-Archive -Path src-tauri/target/release/xds-code.exe -DestinationPath "xds-code_${VERSION}_windows-x64-portable.zip"
+
       - name: Upload Windows artifacts to release
         uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ needs.create-release.outputs.tag }}
           files: |
-            src-tauri/target/release/bundle/msi/*.msi
-            src-tauri/target/release/bundle/nsis/*.exe
-            src-tauri/target/release/*.exe
+            xds-code_*_windows-x64-msi.msi
+            xds-code_*_windows-x64-nsis.exe
+            xds-code_*_windows-x64-portable.zip
 
   build-macos-intel:
     needs: create-release
@@ -207,13 +227,18 @@ jobs:
       - name: Build Tauri app for macOS Intel (x86_64)
         run: bun tauri build --target x86_64-apple-darwin
 
+      - name: Rename macOS Intel artifacts
+        run: |
+          VERSION=$(jq -r '.version' src-tauri/tauri.conf.json)
+          DMG=$(find src-tauri/target/x86_64-apple-darwin/release/bundle/dmg -name "*.dmg" | head -1)
+          cp "$DMG" "xds-code_${VERSION}_macos-x64.dmg"
+
       - name: Upload macOS Intel artifacts to release
         uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ needs.create-release.outputs.tag }}
           files: |
-            src-tauri/target/x86_64-apple-darwin/release/bundle/dmg/*.dmg
-            src-tauri/target/x86_64-apple-darwin/release/bundle/macos/*.app
+            xds-code_*_macos-x64.dmg
 
   build-macos-arm:
     needs: create-release
@@ -263,12 +288,15 @@ jobs:
       - name: Build Tauri app for macOS Apple Silicon (arm64)
         run: bun tauri build
 
+      - name: Rename macOS ARM artifacts
+        run: |
+          VERSION=$(jq -r '.version' src-tauri/tauri.conf.json)
+          DMG=$(find src-tauri/target/aarch64-apple-darwin/release/bundle/dmg src-tauri/target/release/bundle/dmg -name "*.dmg" 2>/dev/null | head -1)
+          cp "$DMG" "xds-code_${VERSION}_macos-aarch64.dmg"
+
       - name: Upload macOS ARM artifacts to release
         uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ needs.create-release.outputs.tag }}
           files: |
-            src-tauri/target/aarch64-apple-darwin/release/bundle/dmg/*.dmg
-            src-tauri/target/aarch64-apple-darwin/release/bundle/macos/*.app
-            src-tauri/target/release/bundle/dmg/*.dmg
-            src-tauri/target/release/bundle/macos/*.app
+            xds-code_*_macos-aarch64.dmg
