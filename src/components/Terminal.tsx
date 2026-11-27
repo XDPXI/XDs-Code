@@ -1,9 +1,9 @@
 import { useEffect, useRef } from "react";
-import { Terminal as XTerm } from "xterm";
-import { FitAddon } from "xterm-addon-fit";
+import { Terminal as XTerm } from "@xterm/xterm";
+import { FitAddon } from "@xterm/addon-fit";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
-import "xterm/css/xterm.css";
+import "@xterm/xterm/css/xterm.css";
 
 interface TerminalProps {
   currentDir: string;
