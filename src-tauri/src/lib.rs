@@ -1,8 +1,10 @@
 use serde::{Deserialize, Serialize};
 use std::fs;
-use std::io::{BufRead, BufReader, Write};
+use portable_pty::{native_pty_system, CommandBuilder, PtySize};
+use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
-use std::process::{Child, Command, Stdio};
+use std::process::{Command, Stdio};
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Mutex;
 use std::thread;
 use tauri::{AppHandle, Emitter, State};
@@ -27,8 +29,14 @@ pub struct DirectoryContents {
 #[derive(Clone)]
 pub struct AppState {
     current_dir: std::sync::Arc<Mutex<Option<PathBuf>>>,
-    shell_child: std::sync::Arc<Mutex<Option<Child>>>,
-    shell_stdin: std::sync::Arc<Mutex<Option<std::process::ChildStdin>>>,
+    pty: std::sync::Arc<Mutex<Option<PtySession>>>,
+    pty_gen: std::sync::Arc<AtomicU64>,
+}
+
+pub struct PtySession {
+    master: Box<dyn portable_pty::MasterPty + Send>,
+    writer: Box<dyn Write + Send>,
+    child: Box<dyn portable_pty::Child + Send + Sync>,
 }
 
 fn default_theme() -> String {
@@ -323,163 +331,177 @@ fn run_file(path: String) -> Result<(), String> {
     Ok(())
 }
 
+fn spawn_shell_session(
+    app: AppHandle,
+    session_gen: std::sync::Arc<AtomicU64>,
+    cwd: Option<String>,
+    rows: u16,
+    cols: u16,
+) -> Result<PtySession, String> {
+    let pty_system = native_pty_system();
+    let pair = pty_system
+        .openpty(PtySize {
+            rows: rows.max(2),
+            cols: cols.max(2),
+            pixel_width: 0,
+            pixel_height: 0,
+        })
+        .map_err(|e| format!("Failed to open PTY: {}", e))?;
+
+    #[cfg(target_os = "windows")]
+    let mut cmd = {
+        let mut c = CommandBuilder::new("powershell.exe");
+        c.arg("-NoLogo");
+        c
+    };
+    #[cfg(not(target_os = "windows"))]
+    let mut cmd = {
+        let shell = std::env::var("SHELL")
+            .ok()
+            .filter(|s| !s.is_empty())
+            .unwrap_or_else(|| {
+                if cfg!(target_os = "macos") {
+                    "/bin/zsh".to_string()
+                } else {
+                    "/bin/bash".to_string()
+                }
+            });
+        CommandBuilder::new(shell)
+    };
+
+    cmd.env("TERM", "xterm-256color");
+    cmd.env("COLORTERM", "truecolor");
+
+    let dir = cwd
+        .filter(|d| !d.is_empty() && Path::new(d).is_dir())
+        .map(PathBuf::from)
+        .or_else(dirs::home_dir)
+        .or_else(|| std::env::current_dir().ok());
+    if let Some(d) = dir {
+        cmd.cwd(d);
+    }
+
+    let child = pair
+        .slave
+        .spawn_command(cmd)
+        .map_err(|e| format!("Failed to spawn shell: {}", e))?;
+    drop(pair.slave);
+
+    let mut reader = pair
+        .master
+        .try_clone_reader()
+        .map_err(|e| format!("Failed to read PTY: {}", e))?;
+    let writer = pair
+        .master
+        .take_writer()
+        .map_err(|e| format!("Failed to write PTY: {}", e))?;
+
+    let my_gen = session_gen.fetch_add(1, Ordering::SeqCst) + 1;
+    thread::spawn(move || {
+        let mut buf = [0u8; 8192];
+        let mut pending: Vec<u8> = Vec::new();
+        loop {
+            match reader.read(&mut buf) {
+                Ok(0) | Err(_) => break,
+                Ok(n) => {
+                    pending.extend_from_slice(&buf[..n]);
+                    // Emit the longest valid UTF-8 prefix; keep a split tail for the next read.
+                    let valid = match std::str::from_utf8(&pending) {
+                        Ok(_) => pending.len(),
+                        Err(e) if e.error_len().is_none() => e.valid_up_to(),
+                        Err(_) => pending.len(),
+                    };
+                    let chunk: Vec<u8> = pending.drain(..valid).collect();
+                    if !chunk.is_empty() {
+                        let _ = app.emit(
+                            "terminal-data",
+                            String::from_utf8_lossy(&chunk).into_owned(),
+                        );
+                    }
+                }
+            }
+        }
+        // Only report exit when this is still the current session.
+        if session_gen.load(Ordering::SeqCst) == my_gen {
+            let _ = app.emit("terminal-exit", ());
+        }
+    });
+
+    Ok(PtySession {
+        master: pair.master,
+        writer,
+        child,
+    })
+}
+
+fn kill_session(session: Option<PtySession>) {
+    if let Some(mut s) = session {
+        let _ = s.child.kill();
+        // Dropping master closes the PTY and ends attached processes.
+        drop(s.writer);
+        drop(s.master);
+    }
+}
+
 #[tauri::command]
 fn init_terminal_shell(
     app: AppHandle,
     state: State<AppState>,
     cwd: Option<String>,
+    rows: Option<u16>,
+    cols: Option<u16>,
 ) -> Result<(), String> {
-    // Drop stdin to close the pipe, which will cause the old shell to exit
-    *state.shell_stdin.lock().unwrap() = None;
-
-    // Kill any existing shell process
-    {
-        let mut child_guard = state.shell_child.lock().unwrap();
-        if let Some(mut child) = child_guard.take() {
-            let _ = child.kill();
-            let _ = child.wait();
-        }
-    }
-
-    let working_dir = cwd.filter(|s| !s.is_empty()).unwrap_or_else(|| {
-        std::env::current_dir()
-            .unwrap_or_default()
-            .to_string_lossy()
-            .into_owned()
-    });
-
-    #[cfg(target_os = "windows")]
-    let mut child = Command::new("powershell")
-        .args(&["-NoExit", "-NonInteractive", "-NoLogo"])
-        .current_dir(&working_dir)
-        .stdin(Stdio::piped())
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
-        .creation_flags(0x08000000)
-        .spawn()
-        .map_err(|e| format!("Failed to spawn shell: {}", e))?;
-
-    #[cfg(target_os = "macos")]
-    let mut child = Command::new("zsh")
-        .current_dir(&working_dir)
-        .stdin(Stdio::piped())
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
-        .spawn()
-        .map_err(|e| format!("Failed to spawn shell: {}", e))?;
-
-    #[cfg(target_os = "linux")]
-    let mut child = Command::new("bash")
-        .current_dir(&working_dir)
-        .stdin(Stdio::piped())
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
-        .spawn()
-        .map_err(|e| format!("Failed to spawn shell: {}", e))?;
-
-    let stdout = child.stdout.take().unwrap();
-    let stderr = child.stderr.take().unwrap();
-    let mut stdin = child.stdin.take().unwrap();
-
-    // Set environment for better compatibility
-    #[cfg(not(target_os = "windows"))]
-    {
-        let _ = writeln!(stdin, "export TERM=xterm-256color");
-        let _ = stdin.flush();
-    }
-    #[cfg(target_os = "windows")]
-    {
-        let _ = writeln!(stdin, "$ErrorActionPreference = 'Continue'");
-        let _ = stdin.flush();
-    }
-
-    *state.shell_child.lock().unwrap() = Some(child);
-    *state.shell_stdin.lock().unwrap() = Some(stdin);
-
-    // Stream stdout; detect sentinel to know when each command finishes
-    let app_out = app.clone();
-    thread::spawn(move || {
-        let reader = BufReader::new(stdout);
-        for line in reader.lines().flatten() {
-            // Skip PowerShell prompt echoes (e.g., "PS D:\path> command")
-            if line.starts_with("PS ") && line.contains('>') {
-                continue;
-            }
-
-            if let Some(rest) = line.strip_prefix("___CMD_DONE___") {
-                // payload: "exitcode___/current/working/dir"
-                let _ = app_out.emit("command-finished", rest.to_string());
-            } else {
-                let _ = app_out.emit("terminal-output", line);
-            }
-        }
-    });
-
-    // Stream stderr
-    let app_err = app;
-    thread::spawn(move || {
-        let reader = BufReader::new(stderr);
-        for line in reader.lines().flatten() {
-            let _ = app_err.emit("terminal-error", line);
-        }
-    });
-
+    // Hold the lock for the whole swap so concurrent init/stop calls cannot interleave.
+    let mut guard = state.pty.lock().unwrap();
+    // Bump generation first so the old reader does not emit "terminal-exit".
+    state.pty_gen.fetch_add(1, Ordering::SeqCst);
+    kill_session(guard.take());
+    let session = spawn_shell_session(
+        app,
+        state.pty_gen.clone(),
+        cwd,
+        rows.unwrap_or(24),
+        cols.unwrap_or(80),
+    )?;
+    *guard = Some(session);
     Ok(())
 }
 
 #[tauri::command]
-fn execute_terminal_command(
-    command: String,
-    _cwd: Option<String>,
-    state: State<AppState>,
-) -> Result<(), String> {
-    let mut stdin_guard = state.shell_stdin.lock().unwrap();
-
-    if let Some(ref mut stdin) = *stdin_guard {
-        writeln!(stdin, "{}", command).map_err(|e| format!("Failed to write command: {}", e))?;
-
-        // Sentinel: written after the command so we know when it finishes and what dir we're in
-        #[cfg(not(target_os = "windows"))]
-        writeln!(stdin, "echo \"___CMD_DONE___$?___$(pwd)\"")
-            .map_err(|e| format!("Failed to write sentinel: {}", e))?;
-
-        #[cfg(target_os = "windows")]
-        writeln!(
-            stdin,
-            "Write-Host \"___CMD_DONE___$($LASTEXITCODE)___$(Get-Location)\""
-        )
-        .map_err(|e| format!("Failed to write sentinel: {}", e))?;
-
-        stdin
-            .flush()
-            .map_err(|e| format!("Failed to flush stdin: {}", e))?;
-
-        Ok(())
-    } else {
-        Err("Shell not initialized".to_string())
+fn write_terminal(data: String, state: State<AppState>) -> Result<(), String> {
+    let mut guard = state.pty.lock().unwrap();
+    match guard.as_mut() {
+        Some(s) => {
+            s.writer
+                .write_all(data.as_bytes())
+                .and_then(|_| s.writer.flush())
+                .map_err(|e| format!("Failed to write to shell: {}", e))
+        }
+        None => Err("Shell not initialized".to_string()),
     }
 }
 
 #[tauri::command]
-fn stop_terminal_command(state: State<AppState>) -> Result<(), String> {
-    // Drop stdin to signal shell to exit
-    *state.shell_stdin.lock().unwrap() = None;
-
-    let mut child_guard = state.shell_child.lock().unwrap();
-    if let Some(mut child) = child_guard.take() {
-        #[cfg(target_os = "windows")]
-        {
-            let _ = std::process::Command::new("taskkill")
-                .args(&["/PID", &child.id().to_string(), "/T", "/F"])
-                .output();
-        }
-        #[cfg(not(target_os = "windows"))]
-        {
-            let _ = child.kill();
-            let _ = child.wait();
-        }
+fn resize_terminal(rows: u16, cols: u16, state: State<AppState>) -> Result<(), String> {
+    let guard = state.pty.lock().unwrap();
+    if let Some(s) = guard.as_ref() {
+        s.master
+            .resize(PtySize {
+                rows: rows.max(2),
+                cols: cols.max(2),
+                pixel_width: 0,
+                pixel_height: 0,
+            })
+            .map_err(|e| format!("Failed to resize: {}", e))?;
     }
+    Ok(())
+}
 
+#[tauri::command]
+fn stop_terminal_command(state: State<AppState>) -> Result<(), String> {
+    let mut guard = state.pty.lock().unwrap();
+    state.pty_gen.fetch_add(1, Ordering::SeqCst);
+    kill_session(guard.take());
     Ok(())
 }
 
@@ -617,8 +639,8 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .manage(AppState {
             current_dir: std::sync::Arc::new(Mutex::new(None)),
-            shell_child: std::sync::Arc::new(Mutex::new(None)),
-            shell_stdin: std::sync::Arc::new(Mutex::new(None)),
+            pty: std::sync::Arc::new(Mutex::new(None)),
+            pty_gen: std::sync::Arc::new(AtomicU64::new(0)),
         })
         .invoke_handler(tauri::generate_handler![
             read_directory,
@@ -633,7 +655,8 @@ pub fn run() {
             open_in_file_manager,
             run_file,
             init_terminal_shell,
-            execute_terminal_command,
+            write_terminal,
+            resize_terminal,
             stop_terminal_command,
             load_settings,
             save_settings,

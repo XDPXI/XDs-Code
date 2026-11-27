@@ -7,11 +7,8 @@ import "@xterm/xterm/css/xterm.css";
 
 interface TerminalProps {
   currentDir: string;
-  onCtrlC?: () => void;
   theme?: string;
 }
-
-const MAX_TERMINAL_LINES = 1000;
 
 const xpTerminalTheme = {
   background: "#000000",
@@ -109,304 +106,176 @@ const oneLightTerminalTheme = {
   brightWhite: "#383a42",
 };
 
-const Terminal: React.FC<TerminalProps> = ({ currentDir, onCtrlC, theme }) => {
+const ESC = String.fromCharCode(27);
+const CR = String.fromCharCode(13);
+const RED = ESC + "[31m";
+const GREY = ESC + "[90m";
+const RESET = ESC + "[0m";
+
+const themeMap: Record<string, typeof defaultTerminalTheme> = {
+  "windows-xp": xpTerminalTheme,
+  legacy: legacyTerminalTheme,
+  "one-dark": defaultTerminalTheme,
+  "one-light": oneLightTerminalTheme,
+};
+
+const getFontSize = (): number => {
+  const size = getComputedStyle(document.documentElement).getPropertyValue(
+    "--terminal-font-size",
+  );
+  const parsed = parseInt(size);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 13;
+};
+
+const Terminal: React.FC<TerminalProps> = ({ currentDir, theme }) => {
   const terminalRef = useRef<HTMLDivElement>(null);
   const xtermRef = useRef<XTerm | null>(null);
-  const fitAddonRef = useRef<FitAddon | null>(null);
-  const busyRef = useRef(false);
-  const commandBufferRef = useRef("");
-  const commandHistoryRef = useRef<string[]>([]);
-  const historyIndexRef = useRef(-1);
-  const unlistenersRef = useRef<Array<() => void>>([]);
-  const lineCountRef = useRef(0);
-  const localDirRef = useRef<string>(currentDir || "~");
-  const ctrlCPendingRef = useRef(false);
+  const cwdRef = useRef<string>(currentDir);
 
-  const getFontSize = (): number => {
-    const size = getComputedStyle(document.documentElement).getPropertyValue(
-      "--terminal-font-size",
-    );
-    if (size) {
-      return parseInt(size);
-    }
-    return 13;
-  };
+  useEffect(() => {
+    cwdRef.current = currentDir;
+  }, [currentDir]);
 
   useEffect(() => {
     if (!xtermRef.current) return;
-    const themeMap: Record<string, typeof defaultTerminalTheme> = {
-      "windows-xp": xpTerminalTheme,
-      legacy: legacyTerminalTheme,
-      "one-dark": defaultTerminalTheme,
-      "one-light": oneLightTerminalTheme,
-    };
     xtermRef.current.options.theme = themeMap[theme || "one-dark"] || defaultTerminalTheme;
   }, [theme]);
 
   useEffect(() => {
-    const themeMap: Record<string, typeof defaultTerminalTheme> = {
-      "windows-xp": xpTerminalTheme,
-      legacy: legacyTerminalTheme,
-      "one-dark": defaultTerminalTheme,
-      "one-light": oneLightTerminalTheme,
-    };
+    const container = terminalRef.current;
+    if (!container) return;
+
     const xterm = new XTerm({
       cursorBlink: true,
       fontFamily: "JetBrains Mono, Fira Code, monospace",
       fontSize: getFontSize(),
       theme: themeMap[theme || "one-dark"] || defaultTerminalTheme,
       allowProposedApi: true,
-      convertEol: true,
+      scrollback: 5000,
     });
-
     const fitAddon = new FitAddon();
     xterm.loadAddon(fitAddon);
-    xterm.open(terminalRef.current!);
-    fitAddon.fit();
-
+    xterm.open(container);
     xtermRef.current = xterm;
-    fitAddonRef.current = fitAddon;
 
-    let mounted = true;
+    let disposed = false;
+    let exited = false;
+    let starting: Promise<void> | null = null;
+    const unlisteners: Array<() => void> = [];
 
-    const setupListeners = async () => {
-      // Initialize persistent shell session
-      try {
-        await invoke("init_terminal_shell", {
-          cwd: localDirRef.current || undefined,
-        });
-      } catch (err) {
-        xterm.writeln(`\x1b[31mFailed to start shell: ${err}\x1b[0m`);
-      }
-
-      displayPrompt();
-
-      const unlisteners = await Promise.all([
-        listen<string>("terminal-output", handleOutputEvent),
-        listen<string>("terminal-error", handleErrorEvent),
-        listen<string>("command-finished", handleFinishEvent),
-      ]);
-
-      if (mounted) {
-        unlistenersRef.current = unlisteners;
-      } else {
-        unlisteners.forEach((u) => u());
-      }
-    };
-
-    setupListeners();
-
-    xterm.onData((data) => {
-      handleTerminalInput(data, xterm);
-    });
-
-    const resizeObserver = new ResizeObserver(() => {
+    const fit = () => {
+      // Skip while hidden: a 0-size container would collapse the PTY to 2 cols.
+      if (!container.clientWidth || !container.clientHeight) return;
       try {
         fitAddon.fit();
       } catch (e) {
         console.error("Failed to fit terminal:", e);
       }
+    };
+
+    // Start (or restart) the shell. Calls overlap-safe: one start at a time.
+    const startShell = (): Promise<void> => {
+      if (starting) return starting;
+      starting = invoke("init_terminal_shell", {
+        cwd: cwdRef.current || undefined,
+        rows: xterm.rows,
+        cols: xterm.cols,
+      })
+        .then(() => {
+          exited = false;
+        })
+        .catch((err) => {
+          xterm.writeln(RED + "Failed to start shell: " + String(err) + RESET);
+          exited = true;
+        })
+        .finally(() => {
+          starting = null;
+        });
+      return starting;
+    };
+
+    const send = async (data: string) => {
+      if (exited) {
+        xterm.write(ESC + "c");
+        await startShell();
+        if (exited) return;
+        // The keypress that woke the shell is dropped, except Enter.
+        if (data !== CR) return;
+      }
+      try {
+        await invoke("write_terminal", { data });
+      } catch {
+        // Shell missing (killed/never started): restart once and retry.
+        await startShell();
+        if (!exited) {
+          await invoke("write_terminal", { data }).catch(() => {});
+        }
+      }
+    };
+
+    xterm.attachCustomKeyEventHandler((e) => {
+      if (e.type !== "keydown") return true;
+      const mod = e.ctrlKey || e.metaKey;
+      // Let app shortcuts reach the window handler.
+      if (mod && !e.shiftKey && ["j", "w", "s"].includes(e.key.toLowerCase())) {
+        return false;
+      }
+      // Copy: Ctrl+C with a selection (or Ctrl+Shift+C) copies; otherwise Ctrl+C is SIGINT.
+      if (mod && e.key.toLowerCase() === "c" && (xterm.hasSelection() || e.shiftKey)) {
+        const sel = xterm.getSelection();
+        if (sel) navigator.clipboard.writeText(sel).catch(() => {});
+        xterm.clearSelection();
+        return false;
+      }
+      // Paste: Ctrl+Shift+V (plain Ctrl+V already pastes through the browser).
+      if (mod && e.shiftKey && e.key.toLowerCase() === "v") {
+        navigator.clipboard
+          .readText()
+          .then((t) => t && xterm.paste(t))
+          .catch(() => {});
+        return false;
+      }
+      return true;
     });
-    resizeObserver.observe(terminalRef.current!);
+
+    const dataSub = xterm.onData((data) => {
+      void send(data);
+    });
+    const resizeSub = xterm.onResize(({ rows, cols }) => {
+      invoke("resize_terminal", { rows, cols }).catch(() => {});
+    });
+
+    const resizeObserver = new ResizeObserver(fit);
+    resizeObserver.observe(container);
+
+    const setup = async () => {
+      // Listeners first so no early shell output is lost.
+      const [offData, offExit] = await Promise.all([
+        listen<string>("terminal-data", (e) => xterm.write(e.payload)),
+        listen("terminal-exit", () => {
+          exited = true;
+          xterm.writeln(CR + "\n" + GREY + "[Shell exited. Press Enter to restart]" + RESET);
+        }),
+      ]);
+      unlisteners.push(offData, offExit);
+      // Unmounted while awaiting (React StrictMode): do not spawn a shell nobody owns.
+      if (disposed) return;
+      fit();
+      await startShell();
+    };
+    void setup();
 
     return () => {
-      mounted = false;
+      disposed = true;
       resizeObserver.disconnect();
+      dataSub.dispose();
+      resizeSub.dispose();
+      unlisteners.forEach((u) => u());
       xterm.dispose();
-      unlistenersRef.current.forEach((unlisten) => unlisten());
-      // Kill the shell on unmount
+      xtermRef.current = null;
       invoke("stop_terminal_command").catch(() => {});
     };
   }, []);
-
-  const displayPrompt = () => {
-    const cwdLabel = localDirRef.current || "~";
-    xtermRef.current?.write(`\x1b[32m${cwdLabel}\x1b[0m \x1b[36m$\x1b[0m `);
-  };
-
-  const handleOutputEvent = (event: any) => {
-    const xterm = xtermRef.current;
-    if (!xterm) return;
-
-    xterm.writeln(event.payload);
-    lineCountRef.current++;
-
-    if (lineCountRef.current > MAX_TERMINAL_LINES) {
-      xterm.clear();
-      lineCountRef.current = 0;
-      xterm.writeln("\x1b[90m[Terminal history cleared]\x1b[0m");
-    }
-  };
-
-  const handleErrorEvent = (event: any) => {
-    const xterm = xtermRef.current;
-    if (!xterm) return;
-
-    xterm.writeln(`\x1b[31m${event.payload}\x1b[0m`);
-    lineCountRef.current++;
-
-    if (lineCountRef.current > MAX_TERMINAL_LINES) {
-      xterm.clear();
-      lineCountRef.current = 0;
-      xterm.writeln("\x1b[90m[Terminal history cleared]\x1b[0m");
-    }
-  };
-
-  const handleFinishEvent = (event: any) => {
-    // Ignore stale finish events after Ctrl+C (shell was restarted)
-    if (ctrlCPendingRef.current) {
-      ctrlCPendingRef.current = false;
-      return;
-    }
-
-    // Parse "exitcode___/path/to/cwd" from payload
-    const payload = (event.payload as string) || "";
-    if (payload) {
-      const sepIdx = payload.indexOf("___");
-      if (sepIdx !== -1) {
-        const newPwd = payload.substring(sepIdx + 3).trim();
-        if (newPwd) {
-          localDirRef.current = newPwd;
-        }
-      }
-    }
-
-    busyRef.current = false;
-    commandBufferRef.current = "";
-    historyIndexRef.current = -1;
-    displayPrompt();
-  };
-
-  const handleTerminalInput = (data: string, xterm: XTerm) => {
-    const code = data.charCodeAt(0);
-
-    // Ctrl+C
-    if (code === 3) {
-      if (busyRef.current) {
-        xterm.write("^C\r\n");
-        busyRef.current = false;
-        commandBufferRef.current = "";
-        historyIndexRef.current = -1;
-        ctrlCPendingRef.current = true;
-
-        // Kill shell and restart in current directory so the interrupted command dies
-        invoke("stop_terminal_command")
-          .catch(() => {})
-          .finally(() => {
-            invoke("init_terminal_shell", {
-              cwd: localDirRef.current || undefined,
-            }).catch((err) => {
-              xterm.writeln(`\x1b[31mFailed to restart shell: ${err}\x1b[0m`);
-            });
-          });
-
-        displayPrompt();
-
-        if (onCtrlC) {
-          onCtrlC();
-        }
-      } else {
-        xterm.write("^C\r\n");
-        displayPrompt();
-      }
-      return;
-    }
-
-    if (busyRef.current) return;
-
-    // Arrow Up - History Previous
-    if (data === "\x1b[A") {
-      if (historyIndexRef.current < commandHistoryRef.current.length - 1) {
-        historyIndexRef.current++;
-        const historicalCmd =
-          commandHistoryRef.current[
-            commandHistoryRef.current.length - 1 - historyIndexRef.current
-          ];
-        clearCurrentInput(xterm);
-        commandBufferRef.current = historicalCmd;
-        xterm.write(historicalCmd);
-      }
-      return;
-    }
-
-    // Arrow Down - History Next
-    if (data === "\x1b[B") {
-      if (historyIndexRef.current > 0) {
-        historyIndexRef.current--;
-        const historicalCmd =
-          commandHistoryRef.current[
-            commandHistoryRef.current.length - 1 - historyIndexRef.current
-          ];
-        clearCurrentInput(xterm);
-        commandBufferRef.current = historicalCmd;
-        xterm.write(historicalCmd);
-      } else if (historyIndexRef.current === 0) {
-        historyIndexRef.current = -1;
-        clearCurrentInput(xterm);
-        commandBufferRef.current = "";
-      }
-      return;
-    }
-
-    // Enter
-    if (code === 13) {
-      xterm.write("\r\n");
-
-      const command = commandBufferRef.current.trim();
-      if (command.length > 0) {
-        // Handle built-in commands
-        if (command === "clear" || command === "cls") {
-          xterm.clear();
-          lineCountRef.current = 0;
-          displayPrompt();
-          commandBufferRef.current = "";
-          historyIndexRef.current = -1;
-          return;
-        }
-
-        // Add to history
-        commandHistoryRef.current.push(command);
-        historyIndexRef.current = -1;
-
-        busyRef.current = true;
-        commandBufferRef.current = "";
-
-        invoke("execute_terminal_command", {
-          command,
-          cwd: localDirRef.current || undefined,
-        }).catch((err) => {
-          xterm.write(`\x1b[31mError: ${err}\x1b[0m\r\n`);
-          busyRef.current = false;
-          displayPrompt();
-          commandBufferRef.current = "";
-          historyIndexRef.current = -1;
-        });
-      } else {
-        displayPrompt();
-      }
-
-      return;
-    }
-
-    // Backspace
-    if (code === 127) {
-      if (commandBufferRef.current.length > 0) {
-        commandBufferRef.current = commandBufferRef.current.slice(0, -1);
-        xterm.write("\b \b");
-      }
-      return;
-    }
-
-    // Printable characters
-    commandBufferRef.current += data;
-    xterm.write(data);
-  };
-
-  const clearCurrentInput = (xterm: XTerm) => {
-    for (let i = 0; i < commandBufferRef.current.length; i++) {
-      xterm.write("\b \b");
-    }
-  };
 
   return (
     <div
@@ -415,7 +284,7 @@ const Terminal: React.FC<TerminalProps> = ({ currentDir, onCtrlC, theme }) => {
         flex: 1,
         width: "100%",
         height: "100%",
-        backgroundColor: theme === "windows-xp" ? "#000000" : (theme === "legacy" ? "#1e1e1e" : (theme === "one-light" ? "#f5f5f5" : "#282c33")),
+        backgroundColor: (themeMap[theme || "one-dark"] || defaultTerminalTheme).background,
       }}
     />
   );

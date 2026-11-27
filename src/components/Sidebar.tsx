@@ -47,6 +47,7 @@ const Sidebar: React.FC<SidebarProps> = ({
   );
   const [dirStack, setDirStack] = useState<string[]>([]);
   const contextMenuRef = useRef<HTMLDivElement>(null);
+  const gitSigRef = useRef<string>("");
   const { alert, prompt, confirm } = useModal();
 
   const handleLegacyFolderNavigate = useCallback(
@@ -82,40 +83,35 @@ const Sidebar: React.FC<SidebarProps> = ({
             repoPath: selectedDir,
           });
 
-          console.log("Git status response:", status);
-          console.log("Selected dir:", selectedDir);
-          console.log("Root contents:", rootContents);
-
           const statusMap = new Map<string, GitFileInfo>();
-
           status.forEach((file) => {
-            console.log(
-              "Processing git file:",
-              file.path,
-              "Status:",
-              file.status,
-            );
             statusMap.set(file.path, file);
             const filename = file.path.split(/[/\\]/).pop();
-            if (filename) {
-              statusMap.set(filename, file);
-            }
+            if (filename) statusMap.set(filename, file);
           });
-
-          console.log("Final status map:", statusMap);
-          setGitStatus(statusMap);
-        } else {
+          const sig = status.map((f) => `${f.path}:${f.status}`).join("|");
+          if (sig !== gitSigRef.current) {
+            gitSigRef.current = sig;
+            setGitStatus(statusMap);
+          }
+        } else if (gitSigRef.current !== "") {
+          gitSigRef.current = "";
           setGitStatus(new Map());
         }
       } catch (error) {
         console.error("Error checking git status:", error);
-        setGitStatus(new Map());
+        if (gitSigRef.current !== "") {
+          gitSigRef.current = "";
+          setGitStatus(new Map());
+        }
       }
     };
 
     checkGitAndLoadStatus();
 
-    const interval = setInterval(checkGitAndLoadStatus, 1000);
+    const interval = setInterval(() => {
+      if (!document.hidden) checkGitAndLoadStatus();
+    }, 3000);
     return () => clearInterval(interval);
   }, [selectedDir]);
 
@@ -358,25 +354,19 @@ const Sidebar: React.FC<SidebarProps> = ({
   const getGitStatusColor = (entry: FileEntry): string | undefined => {
     let gitInfo = gitStatus.get(entry.path);
 
-    console.log("Checking entry:", entry.path, "Found:", gitInfo);
-
     if (!gitInfo && selectedDir !== "null") {
       const relativePath = entry.path
         .replace(selectedDir, "")
         .replace(/^[/\\]/, "");
-      console.log("Trying relative path:", relativePath);
       gitInfo = gitStatus.get(relativePath);
     }
 
     if (!gitInfo) {
       const fileName = entry.path.split(/[/\\]/).pop();
-      console.log("Trying filename:", fileName);
       if (fileName) {
         gitInfo = gitStatus.get(fileName);
       }
     }
-
-    console.log("Final git info for", entry.path, ":", gitInfo);
 
     if (!gitInfo) return undefined;
 

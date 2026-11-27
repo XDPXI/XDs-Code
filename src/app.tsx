@@ -32,6 +32,8 @@ export default function App() {
   const [settings, setSettings] = useState<AppSettings | null>(null);
   const contentRef = useRef<string>("");
   const isDirtyRef = useRef<boolean>(false);
+  // Latest unsaved text per file, so tab switches do not revert edits.
+  const editsRef = useRef<Map<string, string>>(new Map());
   const autoSaveTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
@@ -97,7 +99,7 @@ export default function App() {
     };
   }, [settings, currentFile, unsavedFiles]);
 
-  const defineCustomTheme = (monaco: typeof import("monaco-editor")) => {
+  const defineCustomTheme = useCallback((monaco: typeof import("monaco-editor")) => {
     monaco.editor.defineTheme("xd-dark", {
       base: "vs-dark",
       inherit: true,
@@ -187,7 +189,7 @@ export default function App() {
         "editorIndentGuide.activeBackground": "#dcdcdd",
       },
     });
-  };
+  }, []);
 
   const openTab = useCallback((file: OpenFile) => {
     setOpenTabs((prev) => {
@@ -230,6 +232,7 @@ export default function App() {
         }
       }
 
+      editsRef.current.delete(filePath);
       setOpenTabs((prev) => prev.filter((f) => f.path !== filePath));
 
       if (currentFile === filePath) {
@@ -365,12 +368,6 @@ export default function App() {
     [openTab, alert],
   );
 
-  const handleCtrlC = useCallback(() => {
-    invoke("stop_terminal_command").catch((err) => {
-      console.error("Stop command error:", err);
-    });
-  }, []);
-
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === "s") {
@@ -418,14 +415,27 @@ export default function App() {
           setFileContent("");
           contentRef.current = "";
         } else {
-          contentRef.current = tab.content;
-          setFileContent(tab.content);
+          const latest = editsRef.current.get(tab.path) ?? tab.content;
+          contentRef.current = latest;
+          setFileContent(latest);
           setMediaURL(null);
         }
       }
     },
     [openTabs],
   );
+
+  const handleContentChange = useCallback(() => {
+    isDirtyRef.current = true;
+    if (!currentFile) return;
+    editsRef.current.set(currentFile, contentRef.current);
+    setUnsavedFiles((prev) => {
+      if (prev.has(currentFile)) return prev;
+      const next = new Set(prev);
+      next.add(currentFile);
+      return next;
+    });
+  }, [currentFile]);
 
   const handleSettingsChange = async (
     newSettings: AppSettings,
@@ -507,20 +517,10 @@ export default function App() {
                         currentFile={currentFile}
                         fileContent={fileContent}
                         contentRef={contentRef}
-                        setFileContent={setFileContent}
                         isDirtyRef={isDirtyRef}
                         defineCustomTheme={defineCustomTheme}
                         settings={settings}
-                        onContentChange={() => {
-                          isDirtyRef.current = true;
-                          if (currentFile && !unsavedFiles.has(currentFile)) {
-                            setUnsavedFiles((prev) => {
-                              const newSet = new Set(prev);
-                              newSet.add(currentFile);
-                              return newSet;
-                            });
-                          }
-                        }}
+                        onContentChange={handleContentChange}
                       />
                     ))}
                 </div>
@@ -537,7 +537,6 @@ export default function App() {
                   >
                     <Terminal
                       currentDir={selectedDir}
-                      onCtrlC={handleCtrlC}
                       theme={settings?.theme}
                     />
                   </div>
